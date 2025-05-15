@@ -1,15 +1,22 @@
 <script lang="ts">
-  import InsuranceTypesManager from './InsuranceTypesManager';
+  import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
+
+  onMount(() => {
+    goto('/admin/settings/versicherungsarten');
+  });
 </script>
 
-<div class="settings-container">
-  <InsuranceTypesManager />
+<div class="loading">
+  Lade Einstellungen...
 </div>
 
 <style>
-  .settings-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1.5rem;
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    color: #6c757d;
   }
 </style>
