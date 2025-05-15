@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Plus, 
   Edit2, 
@@ -7,7 +7,9 @@ import {
   Filter, 
   Clock, 
   FileText, 
-  X 
+  X,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
 import { useExaminationStore } from '../../stores/examinationStore';
 import { useDeviceStore } from '../../stores/deviceStore';
@@ -41,11 +43,13 @@ function ExaminationsManager() {
     categoryId: string;
     durationMinutes: number;
     deviceIds: string[];
+    bodySideRequired: boolean;
   }>({
     name: '',
     categoryId: '',
     durationMinutes: 30,
     deviceIds: [],
+    bodySideRequired: false,
   });
   
   // Load initial data
@@ -57,12 +61,10 @@ function ExaminationsManager() {
   
   // Apply filters
   const filteredExaminations = examinations.filter(examination => {
-    // Category filter
     if (categoryFilter !== 'all' && examination.categoryId !== categoryFilter) {
       return false;
     }
     
-    // Search filter
     if (searchTerm && !examination.name.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
@@ -90,6 +92,7 @@ function ExaminationsManager() {
       categoryId: categories.length > 0 ? categories[0].id : '',
       durationMinutes: 30,
       deviceIds: [],
+      bodySideRequired: false,
     });
     setEditingId(null);
     setShowForm(true);
@@ -101,6 +104,7 @@ function ExaminationsManager() {
       categoryId: examination.categoryId,
       durationMinutes: examination.durationMinutes,
       deviceIds: examination.deviceIds,
+      bodySideRequired: examination.bodySideRequired || false,
     });
     setEditingId(examination.id);
     setShowForm(true);
@@ -263,6 +267,21 @@ function ExaminationsManager() {
                 required
               />
             </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  className="rounded border-input h-4 w-4 text-primary focus:ring-primary"
+                  checked={formData.bodySideRequired}
+                  onChange={(e) => setFormData({ ...formData, bodySideRequired: e.target.checked })}
+                />
+                Körperseite abfragen (links/rechts/beidseitig)
+              </label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Aktivieren Sie diese Option, wenn bei der Terminbuchung die Körperseite angegeben werden muss.
+              </p>
+            </div>
             
             <div>
               <label className="block text-sm font-medium mb-1">
@@ -321,6 +340,11 @@ function ExaminationsManager() {
                   <div className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-primary" />
                     <span className="font-medium">{examination.name}</span>
+                    {examination.bodySideRequired && (
+                      <span className="text-xs bg-muted px-2 py-1 rounded">
+                        Körperseite erforderlich
+                      </span>
+                    )}
                   </div>
                   
                   <div className="mt-2 space-y-1 text-sm">

@@ -5,6 +5,7 @@ export interface Examination {
   categoryName?: string;
   durationMinutes: number;
   deviceIds: string[];
+  bodySideRequired?: boolean;
 }
 
 export interface ExaminationCategory {
