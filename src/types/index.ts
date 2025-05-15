@@ -62,8 +62,11 @@ export interface PatientData {
   firstName: string;
   lastName: string;
   dateOfBirth: string; // YYYY-MM-DD format
+  street: string;
+  zipCode: string;
+  city: string;
   email: string;
-  phone?: string;
+  phone: string;
 }
 
 export type InsuranceType = 'public' | 'private' | 'accident' | 'selfPay';
