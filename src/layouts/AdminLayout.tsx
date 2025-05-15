@@ -5,7 +5,8 @@ import {
   FileText, 
   Tablet, 
   CalendarClock, 
-  Settings, 
+  Settings,
+  Users,
   LogOut 
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -79,6 +80,20 @@ function AdminLayout() {
             >
               <CalendarClock className="mr-3 h-5 w-5" />
               Termine
+            </NavLink>
+
+            <NavLink 
+              to="/admin/doctors" 
+              className={({ isActive }) => 
+                `flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  isActive 
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-foreground/70 hover:bg-muted hover:text-foreground'
+                }`
+              }
+            >
+              <Users className="mr-3 h-5 w-5" />
+              Ärzte
             </NavLink>
             
             <NavLink 
