@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { useInsuranceTypeStore } from '../../../../stores/insuranceTypeStore';
   import { Plus, Edit2, Trash, AlertCircle } from 'lucide-svelte';
+  import { useInsuranceTypeStore } from '../../../../stores/insuranceTypeStore';
 
   // Store-State
   let editingId: string | null = null;
@@ -10,9 +10,9 @@
   let formError = '';
   
   // Reaktive Variablen für den Store-State
-  $: insuranceTypes = $insuranceTypeStore.insuranceTypes;
-  $: loading = $insuranceTypeStore.loading;
-  $: error = $insuranceTypeStore.error;
+  $: insuranceTypes = $useInsuranceTypeStore.insuranceTypes;
+  $: loading = $useInsuranceTypeStore.loading;
+  $: error = $useInsuranceTypeStore.error;
 
   // Formular zurücksetzen
   function resetForm() {
@@ -41,13 +41,13 @@
 
     try {
       if (editingId) {
-        await insuranceTypeStore.update({
+        await useInsuranceTypeStore.update({
           id: editingId,
           name: formName.trim(),
           description: formDescription.trim()
         });
       } else {
-        await insuranceTypeStore.create({
+        await useInsuranceTypeStore.create({
           name: formName.trim(),
           description: formDescription.trim()
         });
@@ -62,7 +62,7 @@
   async function deleteInsuranceType(id: string) {
     if (!confirm('Möchten Sie diese Versicherungsart wirklich löschen?')) return;
     
-    await insuranceTypeStore.delete(id);
+    await useInsuranceTypeStore.delete(id);
     
     if (editingId === id) {
       resetForm();
@@ -71,7 +71,7 @@
 
   // Daten beim Laden der Komponente laden
   onMount(() => {
-    insuranceTypeStore.load();
+    useInsuranceTypeStore.load();
   });
 </script>
 
@@ -128,7 +128,13 @@
             class="btn btn-primary"
             disabled={loading}
           >
-            {editingId ? 'Aktualisieren' : 'Erstellen'}
+            {#if editingId}
+              <Edit2 class="h-4 w-4 mr-2" />
+              Aktualisieren
+            {:else}
+              <Plus class="h-4 w-4 mr-2" />
+              Erstellen
+            {/if}
           </button>
         </div>
       </form>
@@ -205,6 +211,14 @@
     font-weight: 500;
   }
 
+  .input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+  }
+
   .alert {
     padding: 0.75rem 1rem;
     border-radius: 0.25rem;
@@ -259,6 +273,27 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn.primary {
+    background-color: #007bff;
+    color: white;
+  }
+
+  .btn.primary:hover:not(:disabled) {
+    background-color: #0056b3;
+  }
+
+  .btn.outline {
+    background: none;
+    border: 1px solid #ced4da;
+  }
+
+  .btn.outline:hover {
+    background-color: #f8f9fa;
   }
 
   .btn.icon {
