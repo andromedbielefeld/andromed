@@ -7,12 +7,13 @@ import { PatientData, InsuranceType, Appointment } from '../../types';
 // Booking flow components
 import CategorySelection from './BookAppointment/CategorySelection';
 import ExaminationSelection from './BookAppointment/ExaminationSelection';
+import BodySideSelection from './BookAppointment/BodySideSelection';
 import SlotSelection from './BookAppointment/SlotSelection';
 import PatientForm from './BookAppointment/PatientForm';
 import Confirmation from './BookAppointment/Confirmation';
 
 // Booking flow steps
-type BookingStep = 'category' | 'examination' | 'slot' | 'patient' | 'confirmation';
+type BookingStep = 'category' | 'examination' | 'bodySide' | 'slot' | 'patient' | 'confirmation';
 
 function BookAppointment() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ function BookAppointment() {
   const [step, setStep] = useState<BookingStep>('category');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [selectedExaminationId, setSelectedExaminationId] = useState<string>('');
+  const [selectedBodySide, setSelectedBodySide] = useState<'left' | 'right' | 'bilateral'>('left');
   const [selectedSlotId, setSelectedSlotId] = useState<string>('');
   const [completedAppointment, setCompletedAppointment] = useState<Appointment | null>(null);
   
@@ -40,6 +42,18 @@ function BookAppointment() {
   
   const handleExaminationSelect = (examinationId: string) => {
     setSelectedExaminationId(examinationId);
+    const examination = examinations.find(e => e.id === examinationId);
+    
+    // If body side is required, go to body side selection, otherwise skip to slot selection
+    if (examination?.bodySideRequired) {
+      setStep('bodySide');
+    } else {
+      setStep('slot');
+    }
+  };
+
+  const handleBodySideSelect = (bodySide: 'left' | 'right' | 'bilateral') => {
+    setSelectedBodySide(bodySide);
     setStep('slot');
   };
   
@@ -48,11 +62,7 @@ function BookAppointment() {
     setStep('patient');
   };
   
-  const handlePatientSubmit = async (
-    patientData: PatientData, 
-    insuranceType: InsuranceType,
-    bodySide?: 'left' | 'right' | 'bilateral'
-  ) => {
+  const handlePatientSubmit = async (patientData: PatientData, insuranceType: InsuranceType) => {
     try {
       if (!user) return;
       
@@ -64,7 +74,7 @@ function BookAppointment() {
         user.id,
         patientData,
         insuranceType,
-        bodySide
+        selectedExamination.bodySideRequired ? selectedBodySide : undefined
       );
       
       // Create local appointment object for confirmation
@@ -74,7 +84,7 @@ function BookAppointment() {
         doctorId: user.id,
         patientData,
         insuranceType,
-        bodySide,
+        bodySide: selectedExamination.bodySideRequired ? selectedBodySide : undefined,
         createdAt: new Date().toISOString(),
         status: 'pending'
       };
@@ -91,6 +101,7 @@ function BookAppointment() {
     setStep('category');
     setSelectedCategoryId('');
     setSelectedExaminationId('');
+    setSelectedBodySide('left');
     setSelectedSlotId('');
     setCompletedAppointment(null);
   };
@@ -101,8 +112,12 @@ function BookAppointment() {
       case 'examination':
         setStep('category');
         break;
-      case 'slot':
+      case 'bodySide':
         setStep('examination');
+        break;
+      case 'slot':
+        const examination = examinations.find(e => e.id === selectedExaminationId);
+        setStep(examination?.bodySideRequired ? 'bodySide' : 'examination');
         break;
       case 'patient':
         setStep('slot');
@@ -111,7 +126,7 @@ function BookAppointment() {
         break;
     }
   };
-
+  
   // Get the selected examination for the patient form
   const selectedExamination = examinations.find(e => e.id === selectedExaminationId);
   
@@ -129,6 +144,14 @@ function BookAppointment() {
             <ExaminationSelection 
               categoryId={selectedCategoryId}
               onSelectExamination={handleExaminationSelect}
+              onBack={goBack}
+            />
+          )}
+
+          {step === 'bodySide' && selectedExamination && (
+            <BodySideSelection
+              examination={selectedExamination}
+              onSelectBodySide={handleBodySideSelect}
               onBack={goBack}
             />
           )}
