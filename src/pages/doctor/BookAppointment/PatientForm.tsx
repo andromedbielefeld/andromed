@@ -5,7 +5,7 @@ import { PatientData, InsuranceType, Examination } from '../../../types';
 
 interface PatientFormProps {
   examination: Examination;
-  onSubmit: (data: PatientData, insuranceType: InsuranceType, bodySide?: 'left' | 'right' | 'bilateral') => void;
+  onSubmit: (data: PatientData, insuranceType: InsuranceType) => void;
   onBack: () => void;
 }
 
@@ -18,20 +18,22 @@ const insuranceOptions: { value: InsuranceType; label: string }[] = [
 
 function PatientForm({ examination, onSubmit, onBack }: PatientFormProps) {
   const [insuranceType, setInsuranceType] = useState<InsuranceType>('public');
-  const [bodySide, setBodySide] = useState<'left' | 'right' | 'bilateral'>('left');
   
   const { register, handleSubmit, formState: { errors } } = useForm<PatientData>({
     defaultValues: {
       firstName: '',
       lastName: '',
       dateOfBirth: '',
+      street: '',
+      zipCode: '',
+      city: '',
       email: '',
       phone: '',
     },
   });
   
   const onFormSubmit = (data: PatientData) => {
-    onSubmit(data, insuranceType, examination.bodySideRequired ? bodySide : undefined);
+    onSubmit(data, insuranceType);
   };
   
   return (
@@ -65,50 +67,6 @@ function PatientForm({ examination, onSubmit, onBack }: PatientFormProps) {
             ))}
           </select>
         </div>
-
-        {examination.bodySideRequired && (
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Körperseite
-              <span className="text-error">*</span>
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                className={`p-3 rounded-md border ${
-                  bodySide === 'left' 
-                    ? 'border-primary bg-primary/10 text-primary' 
-                    : 'border-input hover:bg-muted'
-                }`}
-                onClick={() => setBodySide('left')}
-              >
-                Links
-              </button>
-              <button
-                type="button"
-                className={`p-3 rounded-md border ${
-                  bodySide === 'right' 
-                    ? 'border-primary bg-primary/10 text-primary' 
-                    : 'border-input hover:bg-muted'
-                }`}
-                onClick={() => setBodySide('right')}
-              >
-                Rechts
-              </button>
-              <button
-                type="button"
-                className={`p-3 rounded-md border ${
-                  bodySide === 'bilateral' 
-                    ? 'border-primary bg-primary/10 text-primary' 
-                    : 'border-input hover:bg-muted'
-                }`}
-                onClick={() => setBodySide('bilateral')}
-              >
-                Beidseitig
-              </button>
-            </div>
-          </div>
-        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -154,6 +112,56 @@ function PatientForm({ examination, onSubmit, onBack }: PatientFormProps) {
             <p className="mt-1 text-xs text-error">{errors.dateOfBirth.message}</p>
           )}
         </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Straße und Hausnummer
+            <span className="text-error">*</span>
+          </label>
+          <input
+            className={`input ${errors.street ? 'border-error focus-visible:ring-error' : ''}`}
+            {...register('street', { required: 'Straße und Hausnummer sind erforderlich' })}
+          />
+          {errors.street && (
+            <p className="mt-1 text-xs text-error">{errors.street.message}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              PLZ
+              <span className="text-error">*</span>
+            </label>
+            <input
+              className={`input ${errors.zipCode ? 'border-error focus-visible:ring-error' : ''}`}
+              {...register('zipCode', { 
+                required: 'PLZ ist erforderlich',
+                pattern: {
+                  value: /^\d{5}$/,
+                  message: 'Bitte geben Sie eine gültige PLZ ein'
+                }
+              })}
+            />
+            {errors.zipCode && (
+              <p className="mt-1 text-xs text-error">{errors.zipCode.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Ort
+              <span className="text-error">*</span>
+            </label>
+            <input
+              className={`input ${errors.city ? 'border-error focus-visible:ring-error' : ''}`}
+              {...register('city', { required: 'Ort ist erforderlich' })}
+            />
+            {errors.city && (
+              <p className="mt-1 text-xs text-error">{errors.city.message}</p>
+            )}
+          </div>
+        </div>
         
         <div>
           <label className="block text-sm font-medium mb-1">
@@ -179,12 +187,16 @@ function PatientForm({ examination, onSubmit, onBack }: PatientFormProps) {
         <div>
           <label className="block text-sm font-medium mb-1">
             Telefon
+            <span className="text-error">*</span>
           </label>
           <input
             type="tel"
-            className="input"
-            {...register('phone')}
+            className={`input ${errors.phone ? 'border-error focus-visible:ring-error' : ''}`}
+            {...register('phone', { required: 'Telefonnummer ist erforderlich' })}
           />
+          {errors.phone && (
+            <p className="mt-1 text-xs text-error">{errors.phone.message}</p>
+          )}
         </div>
         
         <div className="pt-4">
