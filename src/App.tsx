@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/admin/Dashboard';
 import ExaminationsManager from './pages/admin/ExaminationsManager';
 import DevicesManager from './pages/admin/DevicesManager';
+import DoctorsManager from './pages/admin/DoctorsManager';
 import AppointmentsManager from './pages/admin/AppointmentsManager';
 import SettingsManager from './pages/admin/SettingsManager';
 
@@ -47,6 +48,7 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="examinations" element={<ExaminationsManager />} />
             <Route path="devices" element={<DevicesManager />} />
+            <Route path="doctors" element={<DoctorsManager />} />
             <Route path="appointments" element={<AppointmentsManager />} />
             <Route path="settings" element={<SettingsManager />} />
           </Route>
@@ -73,5 +75,3 @@ function App() {
     </AuthProvider>
   );
 }
-
-export default App;
