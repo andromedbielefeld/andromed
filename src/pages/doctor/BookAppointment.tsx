@@ -16,7 +16,7 @@ type BookingStep = 'category' | 'examination' | 'slot' | 'patient' | 'confirmati
 
 function BookAppointment() {
   const { user } = useAuth();
-  const { fetchExaminations, fetchCategories } = useExaminationStore();
+  const { examinations, fetchExaminations, fetchCategories } = useExaminationStore();
   const { bookAppointment } = useAppointmentStore();
   
   // Booking flow state
@@ -48,15 +48,23 @@ function BookAppointment() {
     setStep('patient');
   };
   
-  const handlePatientSubmit = async (patientData: PatientData, insuranceType: InsuranceType) => {
+  const handlePatientSubmit = async (
+    patientData: PatientData, 
+    insuranceType: InsuranceType,
+    bodySide?: 'left' | 'right' | 'bilateral'
+  ) => {
     try {
       if (!user) return;
       
+      const selectedExamination = examinations.find(e => e.id === selectedExaminationId);
+      if (!selectedExamination) return;
+
       await bookAppointment(
         selectedSlotId,
         user.id,
         patientData,
-        insuranceType
+        insuranceType,
+        bodySide
       );
       
       // Create local appointment object for confirmation
@@ -66,6 +74,7 @@ function BookAppointment() {
         doctorId: user.id,
         patientData,
         insuranceType,
+        bodySide,
         createdAt: new Date().toISOString(),
         status: 'pending'
       };
@@ -102,6 +111,9 @@ function BookAppointment() {
         break;
     }
   };
+
+  // Get the selected examination for the patient form
+  const selectedExamination = examinations.find(e => e.id === selectedExaminationId);
   
   return (
     <div>
@@ -129,8 +141,9 @@ function BookAppointment() {
             />
           )}
           
-          {step === 'patient' && (
+          {step === 'patient' && selectedExamination && (
             <PatientForm 
+              examination={selectedExamination}
               onSubmit={handlePatientSubmit}
               onBack={goBack}
             />

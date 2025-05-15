@@ -5,7 +5,7 @@ export interface Examination {
   categoryName?: string;
   durationMinutes: number;
   deviceIds: string[];
-  bodySideRequired?: boolean;
+  bodySideRequired: boolean;
 }
 
 export interface ExaminationCategory {
@@ -48,6 +48,7 @@ export interface Appointment {
   doctorId: string;
   patientData: PatientData;
   insuranceType: InsuranceType;
+  bodySide?: 'left' | 'right' | 'bilateral';
   createdAt: string; // ISO string
   status: AppointmentStatus;
 }

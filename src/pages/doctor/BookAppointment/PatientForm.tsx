@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { PatientData, InsuranceType } from '../../../types';
+import { PatientData, InsuranceType, Examination } from '../../../types';
 
 interface PatientFormProps {
-  onSubmit: (data: PatientData, insuranceType: InsuranceType) => void;
+  examination: Examination;
+  onSubmit: (data: PatientData, insuranceType: InsuranceType, bodySide?: 'left' | 'right' | 'bilateral') => void;
   onBack: () => void;
 }
 
@@ -15,8 +16,9 @@ const insuranceOptions: { value: InsuranceType; label: string }[] = [
   { value: 'selfPay', label: 'Selbstzahler' },
 ];
 
-function PatientForm({ onSubmit, onBack }: PatientFormProps) {
+function PatientForm({ examination, onSubmit, onBack }: PatientFormProps) {
   const [insuranceType, setInsuranceType] = useState<InsuranceType>('public');
+  const [bodySide, setBodySide] = useState<'left' | 'right' | 'bilateral'>('left');
   
   const { register, handleSubmit, formState: { errors } } = useForm<PatientData>({
     defaultValues: {
@@ -29,7 +31,7 @@ function PatientForm({ onSubmit, onBack }: PatientFormProps) {
   });
   
   const onFormSubmit = (data: PatientData) => {
-    onSubmit(data, insuranceType);
+    onSubmit(data, insuranceType, examination.bodySideRequired ? bodySide : undefined);
   };
   
   return (
@@ -63,6 +65,50 @@ function PatientForm({ onSubmit, onBack }: PatientFormProps) {
             ))}
           </select>
         </div>
+
+        {examination.bodySideRequired && (
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Körperseite
+              <span className="text-error">*</span>
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                type="button"
+                className={`p-3 rounded-md border ${
+                  bodySide === 'left' 
+                    ? 'border-primary bg-primary/10 text-primary' 
+                    : 'border-input hover:bg-muted'
+                }`}
+                onClick={() => setBodySide('left')}
+              >
+                Links
+              </button>
+              <button
+                type="button"
+                className={`p-3 rounded-md border ${
+                  bodySide === 'right' 
+                    ? 'border-primary bg-primary/10 text-primary' 
+                    : 'border-input hover:bg-muted'
+                }`}
+                onClick={() => setBodySide('right')}
+              >
+                Rechts
+              </button>
+              <button
+                type="button"
+                className={`p-3 rounded-md border ${
+                  bodySide === 'bilateral' 
+                    ? 'border-primary bg-primary/10 text-primary' 
+                    : 'border-input hover:bg-muted'
+                }`}
+                onClick={() => setBodySide('bilateral')}
+              >
+                Beidseitig
+              </button>
+            </div>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
