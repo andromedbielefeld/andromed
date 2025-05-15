@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { PatientData, InsuranceType, Examination } from '../../../types';
+import { useInsuranceTypeStore } from '../../../stores/insuranceTypeStore';
 
 interface PatientFormProps {
   examination: Examination;
@@ -9,14 +10,8 @@ interface PatientFormProps {
   onBack: () => void;
 }
 
-const insuranceOptions: { value: InsuranceType; label: string }[] = [
-  { value: 'public', label: 'Gesetzlich versichert' },
-  { value: 'private', label: 'Privat versichert' },
-  { value: 'accident', label: 'Berufsgenossenschaft (BG)' },
-  { value: 'selfPay', label: 'Selbstzahler' },
-];
-
 function PatientForm({ examination, onSubmit, onBack }: PatientFormProps) {
+  const { insuranceTypes, load: loadInsuranceTypes } = useInsuranceTypeStore();
   const [insuranceType, setInsuranceType] = useState<InsuranceType>('public');
   
   const { register, handleSubmit, formState: { errors } } = useForm<PatientData & { houseNumber: string }>({
@@ -32,6 +27,10 @@ function PatientForm({ examination, onSubmit, onBack }: PatientFormProps) {
       phone: '',
     },
   });
+
+  useEffect(() => {
+    loadInsuranceTypes();
+  }, [loadInsuranceTypes]);
   
   const onFormSubmit = (data: PatientData & { houseNumber: string }) => {
     // Combine street and house number
@@ -62,13 +61,13 @@ function PatientForm({ examination, onSubmit, onBack }: PatientFormProps) {
             Versicherungsart
           </label>
           <select
-            className="input"
+            className="input w-full"
             value={insuranceType}
             onChange={(e) => setInsuranceType(e.target.value as InsuranceType)}
           >
-            {insuranceOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            {insuranceTypes.map(type => (
+              <option key={type.id} value={type.id}>
+                {type.name}
               </option>
             ))}
           </select>
