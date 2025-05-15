@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Plus, Edit2, Trash, AlertCircle } from 'lucide-svelte';
+  import { Plus, CreditCard as Edit2, Trash, AlertCircle } from 'lucide-svelte';
   import { useInsuranceTypeStore } from '../../../../stores/insuranceTypeStore';
 
   // Store-State
