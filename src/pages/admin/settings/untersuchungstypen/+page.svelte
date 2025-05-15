@@ -3,123 +3,112 @@
   import { Plus, Edit2, Trash } from 'lucide-svelte';
   import { supabase } from '$lib/supabaseClient';
 
-  interface InsuranceType {
+  interface ExaminationType {
     id: string;
     name: string;
-    description?: string;
   }
 
-  let insuranceTypes: InsuranceType[] = [];
+  let examinationTypes: ExaminationType[] = [];
   let newTypeName = '';
   let editingId: string | null = null;
   let editName = '';
-  let editDescription = '';
   let loading = false;
   let error = '';
 
-  // Alle Versicherungsarten laden
-  async function loadInsuranceTypes() {
+  // Alle Untersuchungstypen laden
+  async function loadExaminationTypes() {
     loading = true;
     try {
       const { data, error: fetchError } = await supabase
-        .from('insurance_types')
-        .select('id, name, description')
+        .from('examination_categories')
+        .select('id, name')
         .order('name');
 
       if (fetchError) throw fetchError;
-      insuranceTypes = data || [];
+      examinationTypes = data || [];
     } catch (err) {
-      console.error('Fehler beim Laden der Versicherungsarten:', err);
+      console.error('Fehler beim Laden der Untersuchungstypen:', err);
       error = err.message || 'Fehler beim Laden der Daten';
     } finally {
       loading = false;
     }
   }
 
-  // Neue Versicherungsart hinzufügen
-  async function addInsuranceType() {
+  // Neuen Untersuchungstyp hinzufügen
+  async function addExaminationType() {
     if (!newTypeName.trim()) return;
     
     loading = true;
     try {
       const { data, error: insertError } = await supabase
-        .from('insurance_types')
+        .from('examination_categories')
         .insert({ name: newTypeName.trim() })
         .select()
         .single();
 
       if (insertError) throw insertError;
       
-      insuranceTypes = [...insuranceTypes, data];
+      examinationTypes = [...examinationTypes, data];
       newTypeName = '';
       error = '';
     } catch (err) {
-      console.error('Fehler beim Hinzufügen der Versicherungsart:', err);
+      console.error('Fehler beim Hinzufügen des Untersuchungstyps:', err);
       error = err.message || 'Fehler beim Hinzufügen';
     } finally {
       loading = false;
     }
   }
 
-  // Versicherungsart bearbeiten starten
-  function startEditing(type: InsuranceType) {
-    editingId = type.id;
-    editName = type.name;
-    editDescription = type.description || '';
+  // Untersuchungstyp bearbeiten starten
+  function startEditing(id: string, name: string) {
+    editingId = id;
+    editName = name;
   }
 
-  // Versicherungsart aktualisieren
-  async function updateInsuranceType(id: string) {
+  // Untersuchungstyp aktualisieren
+  async function updateExaminationType(id: string) {
     if (!editName.trim()) return;
     
     loading = true;
     try {
       const { error: updateError } = await supabase
-        .from('insurance_types')
-        .update({ 
-          name: editName.trim(),
-          description: editDescription.trim() || null
-        })
+        .from('examination_categories')
+        .update({ name: editName.trim() })
         .eq('id', id);
 
       if (updateError) throw updateError;
       
-      insuranceTypes = insuranceTypes.map(type => 
-        type.id === id ? { 
-          ...type, 
-          name: editName.trim(),
-          description: editDescription.trim() || null
-        } : type
+      examinationTypes = examinationTypes.map(type => 
+        type.id === id ? { ...type, name: editName.trim() } : type
       );
       editingId = null;
       editName = '';
-      editDescription = '';
       error = '';
     } catch (err) {
-      console.error('Fehler beim Aktualisieren der Versicherungsart:', err);
+      console.error('Fehler beim Aktualisieren des Untersuchungstyps:', err);
       error = err.message || 'Fehler beim Aktualisieren';
     } finally {
       loading = false;
     }
   }
 
-  // Versicherungsart löschen
-  async function deleteInsuranceType(id: string) {
-    if (!confirm('Möchten Sie diese Versicherungsart wirklich löschen?')) return;
+  // Untersuchungstyp löschen
+  async function deleteExaminationType(id: string) {
+    if (!confirm('Möchten Sie diesen Untersuchungstyp wirklich löschen?')) return;
     
     loading = true;
     try {
       const { error: deleteError } = await supabase
-        .from('insurance_types')
+        .from('examination_categories')
         .delete()
         .eq('id', id);
 
       if (deleteError) throw deleteError;
       
-      insuranceTypes = insuranceTypes.filter(type => type.id !== id);
+      examinationTypes = examinationTypes.filter(type => type.id !== id);
       error = '';
     } catch (err) {
-      console.error('Fehler beim Löschen der Versicherungsart:', err);
+      console.error('Fehler beim Löschen des Untersuchungstyps:', err);
       error = err.message || 'Fehler beim Löschen';
     } finally {
       loading = false;
@@ -127,12 +116,12 @@
   }
 
   onMount(() => {
-    loadInsuranceTypes();
+    loadExaminationTypes();
   });
 </script>
 
 <div class="settings-container">
-  <h2>Versicherungsarten</h2>
+  <h2>Untersuchungstypen</h2>
 
   <!-- Fehleranzeige -->
   {#if error}
@@ -141,13 +130,13 @@
     </div>
   {/if}
 
-  <!-- Eingabefeld für neue Versicherungsart -->
+  <!-- Eingabefeld für neuen Typ -->
   <div class="input-wrapper">
-    <form on:submit|preventDefault={addInsuranceType} class="flex gap-2">
+    <form on:submit|preventDefault={addExaminationType} class="flex gap-2">
       <input 
         type="text" 
         bind:value={newTypeName} 
-        placeholder="Neue Versicherungsart eingeben..." 
+        placeholder="Neuen Typ eingeben..." 
         disabled={loading}
         class="input flex-grow"
       />
@@ -162,69 +151,51 @@
     </form>
   </div>
 
-  <!-- Liste der Versicherungsarten -->
+  <!-- Liste der Untersuchungstypen -->
   <div class="type-list">
-    {#if loading && insuranceTypes.length === 0}
-      <div class="loading">Lade Versicherungsarten...</div>
-    {:else if insuranceTypes.length === 0}
-      <div class="empty">Keine Versicherungsarten vorhanden.</div>
+    {#if loading && examinationTypes.length === 0}
+      <div class="loading">Lade Untersuchungstypen...</div>
+    {:else if examinationTypes.length === 0}
+      <div class="empty">Keine Untersuchungstypen vorhanden.</div>
     {:else}
-      {#each insuranceTypes as type}
+      {#each examinationTypes as type}
         <div class="type-item">
           {#if editingId === type.id}
             <form 
-              on:submit|preventDefault={() => updateInsuranceType(type.id)}
-              class="w-full space-y-3"
+              on:submit|preventDefault={() => updateExaminationType(type.id)}
+              class="flex items-center gap-2 flex-grow"
             >
-              <div>
-                <input
-                  type="text"
-                  bind:value={editName}
-                  class="input w-full"
-                  placeholder="Name der Versicherungsart"
-                  required
-                />
-              </div>
-              <div>
-                <textarea
-                  bind:value={editDescription}
-                  class="input w-full"
-                  placeholder="Beschreibung (optional)"
-                  rows="2"
-                />
-              </div>
-              <div class="flex justify-end gap-2">
-                <button 
-                  type="submit" 
-                  class="btn btn-primary"
-                  disabled={loading || !editName.trim()}
-                >
-                  Speichern
-                </button>
-                <button 
-                  type="button"
-                  class="btn btn-outline"
-                  on:click={() => {
-                    editingId = null;
-                    editName = '';
-                    editDescription = '';
-                  }}
-                >
-                  Abbrechen
-                </button>
-              </div>
+              <input
+                type="text"
+                bind:value={editName}
+                class="input flex-grow"
+                placeholder="Typ-Name"
+                required
+              />
+              <button 
+                type="submit" 
+                class="btn btn-primary"
+                disabled={loading || !editName.trim()}
+              >
+                Speichern
+              </button>
+              <button 
+                type="button"
+                class="btn btn-outline"
+                on:click={() => {
+                  editingId = null;
+                  editName = '';
+                }}
+              >
+                Abbrechen
+              </button>
             </form>
           {:else}
-            <div class="flex-grow">
-              <div class="type-name">{type.name}</div>
-              {#if type.description}
-                <div class="type-description">{type.description}</div>
-              {/if}
-            </div>
+            <span class="type-name">{type.name}</span>
             <div class="flex items-center gap-2">
               <button 
                 class="btn icon"
-                on:click={() => startEditing(type)}
+                on:click={() => startEditing(type.id, type.name)}
                 disabled={loading}
                 title="Bearbeiten"
               >
@@ -232,7 +203,7 @@
               </button>
               <button 
                 class="btn icon danger"
-                on:click={() => deleteInsuranceType(type.id)}
+                on:click={() => deleteExaminationType(type.id)}
                 disabled={loading}
                 title="Löschen"
               >
@@ -296,13 +267,6 @@
 
   .type-name {
     font-size: 16px;
-    font-weight: 500;
-  }
-
-  .type-description {
-    font-size: 14px;
-    color: #6c757d;
-    margin-top: 4px;
   }
 
   .btn {
@@ -362,11 +326,5 @@
     padding: 15px;
     text-align: center;
     color: #6c757d;
-  }
-
-  .space-y-3 {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
   }
 </style>
