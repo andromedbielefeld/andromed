@@ -8,7 +8,6 @@ interface ExaminationState {
   isLoading: boolean;
   error: string | null;
   
-  // Actions
   fetchExaminations: () => Promise<void>;
   fetchCategories: () => Promise<void>;
   addExamination: (examination: Omit<Examination, 'id'>) => Promise<void>;
@@ -18,50 +17,6 @@ interface ExaminationState {
   updateCategory: (id: string, data: Partial<ExaminationCategory>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
 }
-
-// Mock data for demonstration
-const mockCategories: ExaminationCategory[] = [
-  { id: 'cat1', name: 'CT' },
-  { id: 'cat2', name: 'MRT' },
-];
-
-const mockExaminations: Examination[] = [
-  { 
-    id: 'ex1', 
-    name: 'MRT Knie nativ', 
-    categoryId: 'cat2', 
-    durationMinutes: 30, 
-    deviceIds: ['dev2']
-  },
-  { 
-    id: 'ex2', 
-    name: 'MRT Abdomen nativ', 
-    categoryId: 'cat2', 
-    durationMinutes: 45, 
-    deviceIds: ['dev2']
-  },
-  { 
-    id: 'ex3', 
-    name: 'MRT Abdomen-Becken mit KM', 
-    categoryId: 'cat2', 
-    durationMinutes: 60, 
-    deviceIds: ['dev2']
-  },
-  { 
-    id: 'ex4', 
-    name: 'CT Kopf nativ', 
-    categoryId: 'cat1', 
-    durationMinutes: 20, 
-    deviceIds: ['dev1']
-  },
-  { 
-    id: 'ex5', 
-    name: 'CT Thorax nativ', 
-    categoryId: 'cat1', 
-    durationMinutes: 25, 
-    deviceIds: ['dev1']
-  },
-];
 
 export const useExaminationStore = create<ExaminationState>((set, get) => ({
   examinations: [],
@@ -79,6 +34,7 @@ export const useExaminationStore = create<ExaminationState>((set, get) => ({
           name,
           category_id,
           duration_minutes,
+          body_side_required,
           examination_categories ( name ),
           examination_devices ( device_id )
         `);
@@ -91,6 +47,7 @@ export const useExaminationStore = create<ExaminationState>((set, get) => ({
         categoryId: exam.category_id,
         categoryName: (exam.examination_categories && typeof exam.examination_categories === 'object' && exam.examination_categories.name) || 'Unbekannt',
         durationMinutes: exam.duration_minutes,
+        bodySideRequired: exam.body_side_required || false,
         deviceIds: exam.examination_devices.map((ed: any) => ed.device_id)
       }));
 
@@ -120,13 +77,14 @@ export const useExaminationStore = create<ExaminationState>((set, get) => ({
     try {
       const { deviceIds, ...examinationData } = examination;
 
-      // 1. Untersuchung in 'examinations' einfügen
+      // 1. Insert examination
       const { data: newExamination, error: examinationError } = await supabase
         .from('examinations')
         .insert([{
           name: examinationData.name,
-          category_id: examinationData.categoryId, // Sicherstellen, dass das DB-Spaltenname korrekt ist
-          duration_minutes: examinationData.durationMinutes // Sicherstellen, dass das DB-Spaltenname korrekt ist
+          category_id: examinationData.categoryId,
+          duration_minutes: examinationData.durationMinutes,
+          body_side_required: examinationData.bodySideRequired || false
         }])
         .select()
         .single();
@@ -134,7 +92,7 @@ export const useExaminationStore = create<ExaminationState>((set, get) => ({
       if (examinationError) throw examinationError;
       if (!newExamination) throw new Error('Failed to create examination entry');
 
-      // 2. Geräteverknüpfungen in 'examination_devices' einfügen
+      // 2. Insert device associations
       if (deviceIds && deviceIds.length > 0) {
         const examinationDevicesData = deviceIds.map(deviceId => ({
           examination_id: newExamination.id,
@@ -148,25 +106,61 @@ export const useExaminationStore = create<ExaminationState>((set, get) => ({
         if (edError) throw edError;
       }
 
-      // Neuen Datensatz lokal hinzufügen (optional, fetchExaminations kann auch erneut aufgerufen werden)
-      set(state => ({
-        examinations: [...state.examinations, { ...newExamination, deviceIds }],
-        isLoading: false
-      }));
-      // Alternativ: get().fetchExaminations(); um die Liste komplett neu zu laden
-
+      // Fetch updated list
+      await get().fetchExaminations();
+      set({ isLoading: false });
     } catch (error: any) {
       set({ error: error?.message || 'Failed to add examination', isLoading: false });
     }
   },
   
   updateExamination: async (id, data) => {
-    console.warn('updateExamination not implemented with Supabase yet');
-    set(state => ({
-      examinations: state.examinations.map(exam => 
-        exam.id === id ? { ...exam, ...data } : exam
-      ),
-    }));
+    set({ isLoading: true, error: null });
+    try {
+      // 1. Update examination data
+      const { error: updateError } = await supabase
+        .from('examinations')
+        .update({
+          name: data.name,
+          category_id: data.categoryId,
+          duration_minutes: data.durationMinutes,
+          body_side_required: data.bodySideRequired
+        })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      // 2. Update device associations if provided
+      if (data.deviceIds) {
+        // First delete existing associations
+        const { error: deleteError } = await supabase
+          .from('examination_devices')
+          .delete()
+          .eq('examination_id', id);
+
+        if (deleteError) throw deleteError;
+
+        // Then insert new ones
+        if (data.deviceIds.length > 0) {
+          const examinationDevicesData = data.deviceIds.map(deviceId => ({
+            examination_id: id,
+            device_id: deviceId
+          }));
+
+          const { error: insertError } = await supabase
+            .from('examination_devices')
+            .insert(examinationDevicesData);
+
+          if (insertError) throw insertError;
+        }
+      }
+
+      // Fetch updated list
+      await get().fetchExaminations();
+      set({ isLoading: false });
+    } catch (error: any) {
+      set({ error: error?.message || 'Failed to update examination', isLoading: false });
+    }
   },
   
   deleteExamination: async (id) => {
@@ -189,29 +183,62 @@ export const useExaminationStore = create<ExaminationState>((set, get) => ({
   },
 
   addCategory: async (category) => {
-    console.warn('addCategory not implemented with Supabase yet');
-    const newCategory = {
-      ...category,
-      id: `cat${Math.floor(Math.random() * 1000)}` // Mock ID
-    };
-    set(state => ({
-      categories: [...state.categories, newCategory],
-    }));
+    set({ isLoading: true, error: null });
+    try {
+      const { data, error } = await supabase
+        .from('examination_categories')
+        .insert([category])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      set(state => ({
+        categories: [...state.categories, data],
+        isLoading: false
+      }));
+    } catch (error: any) {
+      set({ error: error?.message || 'Failed to add category', isLoading: false });
+    }
   },
 
   updateCategory: async (id, data) => {
-    console.warn('updateCategory not implemented with Supabase yet');
-    set(state => ({
-      categories: state.categories.map(cat => 
-        cat.id === id ? { ...cat, ...data } : cat
-      ),
-    }));
+    set({ isLoading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('examination_categories')
+        .update(data)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      set(state => ({
+        categories: state.categories.map(cat => 
+          cat.id === id ? { ...cat, ...data } : cat
+        ),
+        isLoading: false
+      }));
+    } catch (error: any) {
+      set({ error: error?.message || 'Failed to update category', isLoading: false });
+    }
   },
 
   deleteCategory: async (id) => {
-    console.warn('deleteCategory not implemented with Supabase yet');
-    set(state => ({
-      categories: state.categories.filter(cat => cat.id !== id),
-    }));
+    set({ isLoading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('examination_categories')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      set(state => ({
+        categories: state.categories.filter(cat => cat.id !== id),
+        isLoading: false
+      }));
+    } catch (error: any) {
+      set({ error: error?.message || 'Failed to delete category', isLoading: false });
+    }
   },
 }));
