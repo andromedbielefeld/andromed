@@ -49,6 +49,8 @@ export interface Appointment {
   patientData: PatientData;
   insuranceType: InsuranceType;
   bodySide?: 'left' | 'right' | 'bilateral';
+  visitReason: string;
+  suspectedDiagnosis: string;
   createdAt: string; // ISO string
   status: AppointmentStatus;
 }
