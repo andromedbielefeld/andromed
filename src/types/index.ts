@@ -51,6 +51,9 @@ export interface Appointment {
   bodySide?: 'left' | 'right' | 'bilateral';
   visitReason: string;
   suspectedDiagnosis: string;
+  needsContrastMedium: boolean;
+  creatinineValue?: string;
+  hasClaustrophobia: boolean;
   createdAt: string; // ISO string
   status: AppointmentStatus;
 }

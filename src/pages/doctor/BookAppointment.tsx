@@ -37,6 +37,9 @@ function BookAppointment() {
   const [selectedBodySide, setSelectedBodySide] = useState<'left' | 'right' | 'bilateral'>('left');
   const [visitReason, setVisitReason] = useState('');
   const [suspectedDiagnosis, setSuspectedDiagnosis] = useState('');
+  const [needsContrastMedium, setNeedsContrastMedium] = useState(false);
+  const [creatinineValue, setCreatinineValue] = useState<string | null>(null);
+  const [hasClaustrophobia, setHasClaustrophobia] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>('');
   const [completedAppointment, setCompletedAppointment] = useState<Appointment | null>(null);
   
@@ -73,8 +76,16 @@ function BookAppointment() {
     setStep('diagnosis');
   };
 
-  const handleDiagnosisSubmit = (diagnosis: string) => {
+  const handleDiagnosisSubmit = (
+    diagnosis: string, 
+    contrastMedium: boolean, 
+    creatinine: string | null,
+    claustrophobia: boolean
+  ) => {
     setSuspectedDiagnosis(diagnosis);
+    setNeedsContrastMedium(contrastMedium);
+    setCreatinineValue(creatinine);
+    setHasClaustrophobia(claustrophobia);
     setStep('slot');
   };
   
@@ -97,7 +108,10 @@ function BookAppointment() {
         insuranceType,
         selectedExamination.bodySideRequired ? selectedBodySide : undefined,
         visitReason,
-        suspectedDiagnosis
+        suspectedDiagnosis,
+        needsContrastMedium,
+        creatinineValue,
+        hasClaustrophobia
       );
       
       // Create local appointment object for confirmation
@@ -110,6 +124,9 @@ function BookAppointment() {
         bodySide: selectedExamination.bodySideRequired ? selectedBodySide : undefined,
         visitReason,
         suspectedDiagnosis,
+        needsContrastMedium,
+        creatinineValue: creatinineValue || undefined,
+        hasClaustrophobia,
         createdAt: new Date().toISOString(),
         status: 'pending'
       };
@@ -129,6 +146,9 @@ function BookAppointment() {
     setSelectedBodySide('left');
     setVisitReason('');
     setSuspectedDiagnosis('');
+    setNeedsContrastMedium(false);
+    setCreatinineValue(null);
+    setHasClaustrophobia(false);
     setSelectedSlotId('');
     setCompletedAppointment(null);
   };

@@ -2,17 +2,25 @@ import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 interface DiagnosisSelectionProps {
-  onSubmit: (diagnosis: string) => void;
+  onSubmit: (diagnosis: string, needsContrastMedium: boolean, creatinineValue: string | null, hasClaustrophobia: boolean) => void;
   onBack: () => void;
 }
 
 function DiagnosisSelection({ onSubmit, onBack }: DiagnosisSelectionProps) {
   const [diagnosis, setDiagnosis] = useState('');
+  const [needsContrastMedium, setNeedsContrastMedium] = useState(false);
+  const [creatinineValue, setCreatinineValue] = useState('');
+  const [hasClaustrophobia, setHasClaustrophobia] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (diagnosis.trim()) {
-      onSubmit(diagnosis.trim());
+      onSubmit(
+        diagnosis.trim(),
+        needsContrastMedium,
+        needsContrastMedium ? creatinineValue.trim() : null,
+        hasClaustrophobia
+      );
     }
   };
 
@@ -41,11 +49,84 @@ function DiagnosisSelection({ onSubmit, onBack }: DiagnosisSelectionProps) {
           />
         </div>
 
+        {/* Kontrastmittel-Frage */}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Soll die Untersuchung mit Kontrastmittel durchgeführt werden?
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  className="mr-2"
+                  checked={!needsContrastMedium}
+                  onChange={() => setNeedsContrastMedium(false)}
+                />
+                Nein
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  className="mr-2"
+                  checked={needsContrastMedium}
+                  onChange={() => setNeedsContrastMedium(true)}
+                />
+                Ja
+              </label>
+            </div>
+          </div>
+
+          {/* Kreatinin-Wert Eingabe */}
+          {needsContrastMedium && (
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Kreatinin-Wert (falls Kontrastmittel-Gabe)
+              </label>
+              <input
+                type="text"
+                value={creatinineValue}
+                onChange={(e) => setCreatinineValue(e.target.value)}
+                className="input w-full"
+                placeholder="Kreatinin-Wert eingeben"
+                required
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Klaustrophobie-Frage */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Leidet der Patient an Klaustrophobie?
+          </label>
+          <div className="flex gap-4">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                className="mr-2"
+                checked={!hasClaustrophobia}
+                onChange={() => setHasClaustrophobia(false)}
+              />
+              Nein
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                className="mr-2"
+                checked={hasClaustrophobia}
+                onChange={() => setHasClaustrophobia(true)}
+              />
+              Ja
+            </label>
+          </div>
+        </div>
+
         <div className="flex justify-end">
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={!diagnosis.trim()}
+            disabled={!diagnosis.trim() || (needsContrastMedium && !creatinineValue.trim())}
           >
             Weiter
           </button>
