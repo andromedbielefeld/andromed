@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Plus, Edit2, Trash } from 'lucide-svelte';
+  import { Plus, CreditCard as Edit2, Trash } from 'lucide-svelte';
   import { supabase } from '$lib/supabaseClient';
 
   interface InsuranceType {
