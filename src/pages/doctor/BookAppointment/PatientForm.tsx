@@ -19,12 +19,13 @@ const insuranceOptions: { value: InsuranceType; label: string }[] = [
 function PatientForm({ examination, onSubmit, onBack }: PatientFormProps) {
   const [insuranceType, setInsuranceType] = useState<InsuranceType>('public');
   
-  const { register, handleSubmit, formState: { errors } } = useForm<PatientData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<PatientData & { houseNumber: string }>({
     defaultValues: {
       firstName: '',
       lastName: '',
       dateOfBirth: '',
       street: '',
+      houseNumber: '',
       zipCode: '',
       city: '',
       email: '',
@@ -32,8 +33,13 @@ function PatientForm({ examination, onSubmit, onBack }: PatientFormProps) {
     },
   });
   
-  const onFormSubmit = (data: PatientData) => {
-    onSubmit(data, insuranceType);
+  const onFormSubmit = (data: PatientData & { houseNumber: string }) => {
+    // Combine street and house number
+    const combinedData: PatientData = {
+      ...data,
+      street: `${data.street} ${data.houseNumber}`,
+    };
+    onSubmit(combinedData, insuranceType);
   };
   
   return (
@@ -113,18 +119,34 @@ function PatientForm({ examination, onSubmit, onBack }: PatientFormProps) {
           )}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Straße und Hausnummer
-            <span className="text-error">*</span>
-          </label>
-          <input
-            className={`input ${errors.street ? 'border-error focus-visible:ring-error' : ''}`}
-            {...register('street', { required: 'Straße und Hausnummer sind erforderlich' })}
-          />
-          {errors.street && (
-            <p className="mt-1 text-xs text-error">{errors.street.message}</p>
-          )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium mb-1">
+              Straße
+              <span className="text-error">*</span>
+            </label>
+            <input
+              className={`input ${errors.street ? 'border-error focus-visible:ring-error' : ''}`}
+              {...register('street', { required: 'Straße ist erforderlich' })}
+            />
+            {errors.street && (
+              <p className="mt-1 text-xs text-error">{errors.street.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Hausnummer
+              <span className="text-error">*</span>
+            </label>
+            <input
+              className={`input ${errors.houseNumber ? 'border-error focus-visible:ring-error' : ''}`}
+              {...register('houseNumber', { required: 'Hausnummer ist erforderlich' })}
+            />
+            {errors.houseNumber && (
+              <p className="mt-1 text-xs text-error">{errors.houseNumber.message}</p>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
