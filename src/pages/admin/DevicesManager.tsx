@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useDeviceStore } from '../../stores/deviceStore';
 import { useExaminationCategoryStore } from '../../stores/examinationCategoryStore';
-import { Device } from '../../types';
+import { Device, WorkingHours, Exception } from '../../types';
 import SlotGrid from '../../components/SlotGrid';
 
 function DevicesManager() {
@@ -22,7 +22,8 @@ function DevicesManager() {
     addDevice,
     updateDevice,
     deleteDevice,
-    updateAvailableSlots
+    updateAvailableSlots,
+    updateWorkingHours
   } = useDeviceStore();
   
   const { categories, fetchCategories } = useExaminationCategoryStore();
@@ -92,28 +93,34 @@ function DevicesManager() {
   };
 
   const handleDeviceSelect = (device: Device) => {
-    // Ensure device has availableSlots object initialized
     setSelectedDevice({
       ...device,
-      availableSlots: device.availableSlots || {}
+      workingHours: device.workingHours || [],
+      exceptions: device.exceptions || []
     });
   };
 
-  const handleSlotToggle = async (date: string, index: number) => {
+  const handleWorkingHoursChange = async (workingHours: WorkingHours[]) => {
     if (!selectedDevice) return;
+    try {
+      await updateWorkingHours(selectedDevice.id, workingHours);
+      setSelectedDevice({
+        ...selectedDevice,
+        workingHours
+      });
+    } catch (error) {
+      console.error('Failed to update working hours:', error);
+    }
+  };
 
-    // Ensure availableSlots object exists
-    const availableSlots = selectedDevice.availableSlots || {};
-    
-    // Get current slots for the date or initialize new array
-    const currentSlots = availableSlots[date] || Array(24).fill(false);
-    
-    // Create new array with toggled slot
-    const newSlots = [...currentSlots];
-    newSlots[index] = !newSlots[index];
+  const handleExceptionAdd = async (exception: Exception) => {
+    if (!selectedDevice) return;
+    // Implementation for adding exceptions
+  };
 
-    // Update device slots in database
-    await updateAvailableSlots(selectedDevice.id, date, newSlots);
+  const handleExceptionRemove = async (date: string) => {
+    if (!selectedDevice) return;
+    // Implementation for removing exceptions
   };
 
   // Filter devices based on search term
@@ -308,8 +315,11 @@ function DevicesManager() {
               </h2>
               <SlotGrid
                 selectedDate={selectedDate}
-                slots={selectedDevice.availableSlots || {}}
-                onSlotToggle={handleSlotToggle}
+                workingHours={selectedDevice.workingHours || []}
+                exceptions={selectedDevice.exceptions || []}
+                onWorkingHoursChange={handleWorkingHoursChange}
+                onExceptionAdd={handleExceptionAdd}
+                onExceptionRemove={handleExceptionRemove}
                 onDateChange={setSelectedDate}
               />
             </div>
