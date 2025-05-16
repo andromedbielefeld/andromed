@@ -54,6 +54,7 @@ export interface Appointment {
   needsContrastMedium: boolean;
   creatinineValue?: string;
   hasClaustrophobia: boolean;
+  signature?: string;
   createdAt: string; // ISO string
   status: AppointmentStatus;
 }
