@@ -7,14 +7,17 @@ import {
   Calendar,
   Clock,
   X,
-  AlertCircle
+  AlertCircle,
+  Save
 } from 'lucide-react';
 import { useDeviceStore } from '../../stores/deviceStore';
 import { useExaminationCategoryStore } from '../../stores/examinationCategoryStore';
-import { Device, WorkingHours, Exception } from '../../types';
+import { Device } from '../../types';
+import { format } from 'date-fns';
+import SlotGrid from '../../components/SlotGrid';
 
 function DevicesManager() {
-  const { devices, addDevice, updateDevice, deleteDevice, isLoading, error } = useDeviceStore();
+  const { devices, addDevice, updateDevice, deleteDevice, isLoading, error, updateAvailableSlots } = useDeviceStore();
   const { categories, fetchCategories, error: categoryError } = useExaminationCategoryStore();
   
   // Form state
@@ -23,18 +26,20 @@ function DevicesManager() {
   const [formData, setFormData] = useState<{
     name: string;
     categoryId: string;
-    workingHours: WorkingHours[];
-    exceptions: Exception[];
   }>({
     name: '',
-    categoryId: '',
-    workingHours: [],
-    exceptions: []
+    categoryId: ''
   });
   
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Slot management state
+  const [showSlotManager, setShowSlotManager] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [slots, setSlots] = useState<boolean[]>(Array(24).fill(false));
 
   // Load categories on mount
   useEffect(() => {
@@ -42,22 +47,14 @@ function DevicesManager() {
   }, [fetchCategories]);
   
   const handleAddNew = () => {
-    if (categories.length === 0) {
+    if (!categories?.length) {
       setFormError('Bitte erstellen Sie zuerst eine Gerätekategorie, bevor Sie ein Gerät anlegen.');
       return;
     }
 
     setFormData({
       name: '',
-      categoryId: categories[0].id,
-      workingHours: [
-        { day: 1, start: '08:00', end: '17:59' }, // Monday
-        { day: 2, start: '08:00', end: '17:59' }, // Tuesday
-        { day: 3, start: '08:00', end: '17:59' }, // Wednesday
-        { day: 4, start: '08:00', end: '17:59' }, // Thursday
-        { day: 5, start: '08:00', end: '13:59' }, // Friday
-      ],
-      exceptions: []
+      categoryId: categories[0].id
     });
     setEditingId(null);
     setShowForm(true);
@@ -66,7 +63,7 @@ function DevicesManager() {
   
   const handleEdit = (device: Device) => {
     // Verify that the device's category still exists
-    const categoryExists = categories.some(category => category.id === device.categoryId);
+    const categoryExists = categories?.some(category => category.id === device.categoryId);
     
     if (!categoryExists) {
       setFormError(`Die Kategorie dieses Geräts existiert nicht mehr. Bitte wählen Sie eine neue Kategorie aus.`);
@@ -75,9 +72,7 @@ function DevicesManager() {
 
     setFormData({
       name: device.name,
-      categoryId: device.categoryId,
-      workingHours: device.workingHours || [],
-      exceptions: device.exceptions || []
+      categoryId: device.categoryId
     });
     setEditingId(device.id);
     setShowForm(true);
@@ -95,7 +90,7 @@ function DevicesManager() {
     setFormError(null);
 
     // Validate category existence
-    if (!categories.some(category => category.id === formData.categoryId)) {
+    if (!categories?.some(category => category.id === formData.categoryId)) {
       setFormError('Die ausgewählte Kategorie existiert nicht mehr. Bitte wählen Sie eine andere Kategorie.');
       return;
     }
@@ -120,74 +115,37 @@ function DevicesManager() {
     setEditingId(null);
     setFormError(null);
   };
-  
-  const addWorkingDay = (day: number) => {
-    setFormData(prev => ({
-      ...prev,
-      workingHours: [
-        ...prev.workingHours,
-        { day, start: '08:00', end: '17:59' }
-      ]
-    }));
-  };
-  
-  const updateWorkingHours = (index: number, field: 'start' | 'end', value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      workingHours: prev.workingHours.map((hours, i) => 
-        i === index ? { ...hours, [field]: value } : hours
-      )
-    }));
-  };
-  
-  const removeWorkingDay = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      workingHours: prev.workingHours.filter((_, i) => i !== index)
-    }));
-  };
-  
-  const addException = () => {
-    setFormData(prev => ({
-      ...prev,
-      exceptions: [
-        ...prev.exceptions,
-        { date: '', reason: '' }
-      ]
-    }));
-  };
-  
-  const updateException = (index: number, field: keyof Exception, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      exceptions: prev.exceptions.map((exception, i) => 
-        i === index ? { ...exception, [field]: value } : exception
-      )
-    }));
-  };
-  
-  const removeException = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      exceptions: prev.exceptions.filter((_, i) => i !== index)
-    }));
-  };
-  
-  const getDayName = (day: number): string => {
-    const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-    return days[day];
-  };
-  
-  const getAvailableDays = () => {
-    const usedDays = formData.workingHours.map(h => h.day);
-    return Array.from({ length: 7 }, (_, i) => i).filter(day => !usedDays.includes(day));
+
+  const handleManageSlots = (device: Device) => {
+    setSelectedDevice(device);
+    setShowSlotManager(true);
+    
+    // Load slots for the selected date
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const deviceSlots = device.availableSlots[dateStr] || Array(24).fill(false);
+    setSlots(deviceSlots);
   };
 
-  const getCategoryName = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
-    return category ? category.name : 'Unbekannt';
+  const handleSlotToggle = async (index: number) => {
+    if (!selectedDevice) return;
+
+    const newSlots = [...slots];
+    newSlots[index] = !newSlots[index];
+    setSlots(newSlots);
+
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    await updateAvailableSlots(selectedDevice.id, dateStr, newSlots);
   };
-  
+
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date);
+    if (selectedDevice) {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const deviceSlots = selectedDevice.availableSlots[dateStr] || Array(24).fill(false);
+      setSlots(deviceSlots);
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
@@ -272,7 +230,7 @@ function DevicesManager() {
                 Kategorie
                 <span className="text-error">*</span>
               </label>
-              {categories.length === 0 ? (
+              {!categories?.length ? (
                 <div className="text-sm text-error">
                   Keine Kategorien verfügbar. Bitte erstellen Sie zuerst eine Kategorie.
                 </div>
@@ -293,107 +251,7 @@ function DevicesManager() {
               )}
             </div>
             
-            {/* Working Hours */}
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <label className="block text-sm font-medium">
-                  Arbeitszeiten
-                </label>
-                <div className="relative">
-                  <select
-                    className="input py-1 pl-2 pr-8"
-                    onChange={(e) => addWorkingDay(parseInt(e.target.value))}
-                    value=""
-                  >
-                    <option value="">Tag hinzufügen...</option>
-                    {getAvailableDays().map(day => (
-                      <option key={day} value={day}>{getDayName(day)}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                {formData.workingHours.map((hours, index) => (
-                  <div key={index} className="flex items-center gap-4">
-                    <div className="w-32">
-                      <span className="text-sm font-medium">{getDayName(hours.day)}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="time"
-                        className="input py-1 px-2"
-                        value={hours.start}
-                        onChange={(e) => updateWorkingHours(index, 'start', e.target.value)}
-                      />
-                      <span className="text-sm text-muted-foreground">bis</span>
-                      <input
-                        type="time"
-                        className="input py-1 px-2"
-                        value={hours.end}
-                        onChange={(e) => updateWorkingHours(index, 'end', e.target.value)}
-                      />
-                    </div>
-                    
-                    <button
-                      type="button"
-                      onClick={() => removeWorkingDay(index)}
-                      className="text-muted-foreground hover:text-error"
-                    >
-                      <Trash className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Exceptions */}
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <label className="block text-sm font-medium">
-                  Ausnahmen
-                </label>
-                <button
-                  type="button"
-                  onClick={addException}
-                  className="text-sm text-primary hover:text-primary/80"
-                >
-                  + Ausnahme hinzufügen
-                </button>
-              </div>
-              
-              <div className="space-y-3">
-                {formData.exceptions.map((exception, index) => (
-                  <div key={index} className="flex items-center gap-4">
-                    <input
-                      type="date"
-                      className="input py-1 px-2"
-                      value={exception.date}
-                      onChange={(e) => updateException(index, 'date', e.target.value)}
-                    />
-                    
-                    <input
-                      type="text"
-                      placeholder="Grund (z.B. Wartung)"
-                      className="input flex-grow"
-                      value={exception.reason}
-                      onChange={(e) => updateException(index, 'reason', e.target.value)}
-                    />
-                    
-                    <button
-                      type="button"
-                      onClick={() => removeException(index)}
-                      className="text-muted-foreground hover:text-error"
-                    >
-                      <Trash className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex justify-end gap-3">
               <button
                 type="button"
                 onClick={handleCancel}
@@ -404,7 +262,7 @@ function DevicesManager() {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={categories.length === 0}
+                disabled={!categories?.length}
               >
                 {editingId ? 'Aktualisieren' : 'Gerät anlegen'}
               </button>
@@ -412,9 +270,33 @@ function DevicesManager() {
           </form>
         </div>
       )}
+
+      {/* Slot Manager */}
+      {showSlotManager && selectedDevice && (
+        <div className="card mb-8 animate-fade-in">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold">
+              Verfügbarkeit verwalten: {selectedDevice.name}
+            </h2>
+            <button
+              onClick={() => setShowSlotManager(false)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <SlotGrid
+            selectedDate={selectedDate}
+            slots={slots}
+            onSlotToggle={handleSlotToggle}
+            onDateChange={handleDateChange}
+          />
+        </div>
+      )}
       
       {/* Devices list */}
-      {isLoading ? (
+      {isLoading && !devices?.length ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
@@ -425,7 +307,7 @@ function DevicesManager() {
             {error}
           </div>
         </div>
-      ) : devices.length === 0 ? (
+      ) : !devices?.length ? (
         <div className="text-center py-12 text-muted-foreground">
           Keine Geräte gefunden
         </div>
@@ -451,33 +333,20 @@ function DevicesManager() {
                     <div className="mt-2 space-y-1 text-sm">
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">Kategorie:</span>
-                        <span>{getCategoryName(device.categoryId)}</span>
+                        <span>{device.categoryName || 'Unbekannt'}</span>
                       </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Arbeitszeiten:</span>
-                        <span>
-                          {(device.workingHours || [])
-                            .sort((a, b) => a.day - b.day)
-                            .map(hours => `${getDayName(hours.day)} ${hours.start}–${hours.end}`)
-                            .join(', ')}
-                        </span>
-                      </div>
-                      
-                      {(device.exceptions || []).length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground">Ausnahmen:</span>
-                          <span>
-                            {device.exceptions
-                              .map(ex => `${ex.date} (${ex.reason})`)
-                              .join(', ')}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
                   
                   <div className="flex items-center space-x-2 md:self-start">
+                    <button
+                      onClick={() => handleManageSlots(device)}
+                      className="btn btn-outline"
+                    >
+                      <Calendar className="h-4 w-4 mr-1" />
+                      Verfügbarkeit
+                    </button>
+
                     <button
                       onClick={() => handleEdit(device)}
                       className="btn btn-outline"
