@@ -25,8 +25,9 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
   // Track hover state for better UX
   const [hoveredSlot, setHoveredSlot] = useState<{ date: string; index: number } | null>(null);
 
-  const handleSlotClick = (e: React.MouseEvent, date: string, index: number) => {
-    e.preventDefault(); // Prevent any parent button clicks
+  // Korrigierte handleSlotClick Funktion
+  const handleSlotClick = (date: string, index: number) => {
+    // Keine preventDefault mehr, damit die Checkbox funktioniert
     onSlotToggle(date, index);
   };
 
@@ -87,17 +88,17 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
                         onMouseLeave={() => setHoveredSlot(null)}
                         className={`w-full h-full p-2 rounded transition-colors ${
                           isSelected 
-                            ? 'bg-primary/20 hover:bg-primary/30' 
+                            ? 'bg-green-500/20 hover:bg-green-500/30' 
                             : 'hover:bg-muted'
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={(e) => handleSlotClick(e.nativeEvent as unknown as React.MouseEvent, dateStr, i)}
+                          onChange={() => handleSlotClick(dateStr, i)}
                           className={`w-4 h-4 mx-auto rounded border ${
                             isSelected 
-                              ? 'bg-primary border-primary text-primary-foreground' 
+                              ? 'bg-green-500 border-green-500 text-white' 
                               : 'border-input'
                           }`}
                         />
