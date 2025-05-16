@@ -25,3 +25,5 @@ const handleDateChange = (date: Date) => {
     setSlots(deviceSlots);
   }
 };
+
+export default handleDateChange
