@@ -46,31 +46,57 @@ export const useDeviceStore = create<DeviceState>((set) => ({
         throw new Error('Authentication required');
       }
 
-      // Fetch devices with their working hours and exceptions
+      // Fetch devices with their categories
       const { data: devices, error: devicesError } = await supabase
         .from('devices')
         .select(`
           *,
-          examination_categories ( name ), 
-          device_working_hours (*),
-          device_exceptions (*)
+          examination_categories (
+            name
+          )
         `)
         .order('name');
       
       if (devicesError) throw devicesError;
+
+      // Fetch working hours for each device
+      const workingHoursPromises = devices.map(async (device: any) => {
+        const { data: workingHours, error: whError } = await supabase
+          .from('device_working_hours')
+          .select('*')
+          .eq('device_id', device.id);
+        
+        if (whError) throw whError;
+        return workingHours || [];
+      });
+
+      // Fetch exceptions for each device
+      const exceptionsPromises = devices.map(async (device: any) => {
+        const { data: exceptions, error: exError } = await supabase
+          .from('device_exceptions')
+          .select('*')
+          .eq('device_id', device.id);
+        
+        if (exError) throw exError;
+        return exceptions || [];
+      });
+
+      // Wait for all promises to resolve
+      const workingHoursResults = await Promise.all(workingHoursPromises);
+      const exceptionsResults = await Promise.all(exceptionsPromises);
       
       // Transform the data to match our Device type
-      const transformedDevices = devices.map((device: any) => ({
+      const transformedDevices = devices.map((device: any, index: number) => ({
         id: device.id,
         name: device.name,
         categoryId: device.category_id,
         categoryName: device.examination_categories?.name || 'Unbekannt',
-        workingHours: device.device_working_hours.map((wh: any) => ({
+        workingHours: workingHoursResults[index].map((wh: any) => ({
           day: wh.day_of_week,
           start: wh.start_time,
           end: wh.end_time
         })),
-        exceptions: device.device_exceptions.map((ex: any) => ({
+        exceptions: exceptionsResults[index].map((ex: any) => ({
           date: ex.exception_date,
           reason: ex.reason
         }))
