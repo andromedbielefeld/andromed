@@ -30,8 +30,8 @@ function ExaminationsManager() {
     deleteCategory
   } = useExaminationStore();
   
-  const { devices, fetchDevices } = useDeviceStore();
-  const { specialties, fetchSpecialties } = useSpecialtyStore();
+  const { devices = [], fetchDevices } = useDeviceStore();
+  const { specialties = [], fetchSpecialties } = useSpecialtyStore();
   
   // State for filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,7 +66,7 @@ function ExaminationsManager() {
   }, [fetchExaminations, fetchCategories, fetchDevices, fetchSpecialties]);
   
   // Apply filters
-  const filteredExaminations = examinations.filter(examination => {
+  const filteredExaminations = examinations?.filter(examination => {
     if (categoryFilter !== 'all' && examination.categoryId !== categoryFilter) {
       return false;
     }
@@ -76,17 +76,17 @@ function ExaminationsManager() {
     }
     
     return true;
-  });
+  }) || [];
   
   // Helpers
   const getCategoryName = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
+    const category = categories?.find(c => c.id === categoryId);
     return category ? category.name : 'Unbekannt';
   };
   
   const getDeviceNames = (deviceIds: string[]) => {
     return deviceIds.map(id => {
-      const device = devices.find(d => d.id === id);
+      const device = devices?.find(d => d.id === id);
       return device ? device.name : 'Unbekannt';
     }).join(', ');
   };
@@ -95,7 +95,7 @@ function ExaminationsManager() {
   const handleAddNew = () => {
     setFormData({
       name: '',
-      categoryId: categories.length > 0 ? categories[0].id : '',
+      categoryId: categories?.[0]?.id || '',
       durationMinutes: 30,
       deviceIds: [],
       bodySideRequired: false,
@@ -110,7 +110,7 @@ function ExaminationsManager() {
       name: examination.name,
       categoryId: examination.categoryId,
       durationMinutes: examination.durationMinutes,
-      deviceIds: examination.deviceIds,
+      deviceIds: examination.deviceIds || [],
       bodySideRequired: examination.bodySideRequired || false,
       specialtyIds: examination.specialtyIds || []
     });
@@ -225,7 +225,7 @@ function ExaminationsManager() {
               onChange={(e) => setCategoryFilter(e.target.value)}
             >
               <option value="all">Alle Kategorien</option>
-              {categories.map(category => (
+              {categories?.map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
@@ -276,7 +276,7 @@ function ExaminationsManager() {
                 required
               >
                 <option value="" disabled>Kategorie wählen</option>
-                {categories.map(category => (
+                {categories?.map(category => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
@@ -321,7 +321,7 @@ function ExaminationsManager() {
                 <span className="text-error">*</span>
               </label>
               <div className="space-y-2 mt-2">
-                {devices.map(device => (
+                {devices?.map(device => (
                   <label key={device.id} className="flex items-center">
                     <input
                       type="checkbox"
@@ -344,7 +344,7 @@ function ExaminationsManager() {
                 <span className="text-error">*</span>
               </label>
               <div className="space-y-2 mt-2">
-                {specialties.map(specialty => (
+                {specialties?.map(specialty => (
                   <label key={specialty.id} className="flex items-center">
                     <input
                       type="checkbox"
@@ -418,14 +418,14 @@ function ExaminationsManager() {
                     
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Geräte:</span>
-                      <span>{getDeviceNames(examination.deviceIds)}</span>
+                      <span>{getDeviceNames(examination.deviceIds || [])}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Fachgebiete:</span>
                       <span>
                         {examination.specialtyIds?.map(id => {
-                          const specialty = specialties.find(s => s.id === id);
+                          const specialty = specialties?.find(s => s.id === id);
                           return specialty?.name;
                         }).filter(Boolean).join(', ') || 'Keine Fachgebiete zugewiesen'}
                       </span>
