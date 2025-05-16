@@ -16,7 +16,7 @@ function DoctorLayout() {
       <div className="w-64 bg-card border-r border-border shadow-sm hidden md:block">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <ActivitySquare className="h-6 w-6 text-primary mr-2" />
-          <span className="font-semibold">Arzt-Portal</span>
+          <span className="font-semibold">andromed-Portal</span>
         </div>
         
         <div className="py-4">
@@ -76,7 +76,7 @@ function DoctorLayout() {
       <div className="bg-card border-b border-border shadow-sm fixed top-0 left-0 right-0 h-14 flex items-center justify-between px-4 md:hidden z-10">
         <div className="flex items-center">
           <ActivitySquare className="h-6 w-6 text-primary mr-2" />
-          <span className="font-semibold">Arzt-Portal</span>
+          <span className="font-semibold">andromed-Portal</span>
         </div>
         {/* Mobile menu button would go here */}
       </div>
