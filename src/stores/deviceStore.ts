@@ -11,6 +11,7 @@ interface DeviceState {
   addDevice: (device: Omit<Device, 'id'>) => Promise<void>;
   updateDevice: (id: string, data: Partial<Device>) => Promise<void>;
   deleteDevice: (id: string) => Promise<void>;
+  updateAvailableSlots: (deviceId: string, date: string, slots: boolean[]) => Promise<void>;
 }
 
 const isAdmin = (session: any) => {
@@ -99,7 +100,8 @@ export const useDeviceStore = create<DeviceState>((set) => ({
         exceptions: exceptionsResults[index].map((ex: any) => ({
           date: ex.exception_date,
           reason: ex.reason
-        }))
+        })),
+        availableSlots: device.available_slots || {}
       }));
 
       set({ devices: transformedDevices, isLoading: false });
@@ -182,7 +184,8 @@ export const useDeviceStore = create<DeviceState>((set) => ({
           categoryId: newDevice.category_id,
           categoryName: newDevice.examination_categories?.name || 'Unbekannt',
           workingHours: device.workingHours,
-          exceptions: device.exceptions
+          exceptions: device.exceptions,
+          availableSlots: {}
         }],
         isLoading: false 
       }));
@@ -326,6 +329,60 @@ export const useDeviceStore = create<DeviceState>((set) => ({
       }));
     } catch (error: any) {
       let specificMessage = 'Failed to delete device';
+      if (error && typeof error === 'object' && error.message && typeof error.message === 'string') {
+        specificMessage = error.message;
+      } else if (error instanceof Error && error.message) {
+        specificMessage = error.message;
+      }
+      set({ error: specificMessage, isLoading: false });
+    }
+  },
+
+  updateAvailableSlots: async (deviceId: string, date: string, slots: boolean[]) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Authentication required');
+      }
+
+      if (!isAdmin(session)) {
+        throw new Error('Admin access required');
+      }
+
+      // Get the current device
+      const device = await supabase
+        .from('devices')
+        .select('available_slots')
+        .eq('id', deviceId)
+        .single();
+
+      if (device.error) throw device.error;
+
+      // Update the available_slots for the specific date
+      const availableSlots = device.data?.available_slots || {};
+      availableSlots[date] = slots;
+
+      // Update the device in the database
+      const { error: updateError } = await supabase
+        .from('devices')
+        .update({ available_slots: availableSlots })
+        .eq('id', deviceId);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      set(state => ({
+        devices: state.devices.map(device => 
+          device.id === deviceId
+            ? { ...device, availableSlots: { ...device.availableSlots, [date]: slots } }
+            : device
+        ),
+        isLoading: false
+      }));
+    } catch (error: any) {
+      let specificMessage = 'Failed to update available slots';
       if (error && typeof error === 'object' && error.message && typeof error.message === 'string') {
         specificMessage = error.message;
       } else if (error instanceof Error && error.message) {
