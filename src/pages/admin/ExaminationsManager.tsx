@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useExaminationStore } from '../../stores/examinationStore';
 import { useDeviceStore } from '../../stores/deviceStore';
+import { useSpecialtyStore } from '../../stores/specialtyStore';
 import { Examination, ExaminationCategory, Device } from '../../types';
 
 function ExaminationsManager() {
@@ -30,6 +31,7 @@ function ExaminationsManager() {
   } = useExaminationStore();
   
   const { devices, fetchDevices } = useDeviceStore();
+  const { specialties, fetchSpecialties } = useSpecialtyStore();
   
   // State for filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,18 +40,21 @@ function ExaminationsManager() {
   // State for form
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [formData, setFormData] = useState<{
     name: string;
     categoryId: string;
     durationMinutes: number;
     deviceIds: string[];
     bodySideRequired: boolean;
+    specialtyIds: string[];
   }>({
     name: '',
     categoryId: '',
     durationMinutes: 30,
     deviceIds: [],
     bodySideRequired: false,
+    specialtyIds: []
   });
   
   // Load initial data
@@ -57,7 +62,8 @@ function ExaminationsManager() {
     fetchExaminations();
     fetchCategories();
     fetchDevices();
-  }, [fetchExaminations, fetchCategories, fetchDevices]);
+    fetchSpecialties();
+  }, [fetchExaminations, fetchCategories, fetchDevices, fetchSpecialties]);
   
   // Apply filters
   const filteredExaminations = examinations.filter(examination => {
@@ -93,6 +99,7 @@ function ExaminationsManager() {
       durationMinutes: 30,
       deviceIds: [],
       bodySideRequired: false,
+      specialtyIds: []
     });
     setEditingId(null);
     setShowForm(true);
@@ -105,6 +112,7 @@ function ExaminationsManager() {
       durationMinutes: examination.durationMinutes,
       deviceIds: examination.deviceIds,
       bodySideRequired: examination.bodySideRequired || false,
+      specialtyIds: examination.specialtyIds || []
     });
     setEditingId(examination.id);
     setShowForm(true);
@@ -118,6 +126,12 @@ function ExaminationsManager() {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
+    if (formData.specialtyIds.length === 0) {
+      setFormError('Bitte wählen Sie mindestens ein Fachgebiet aus');
+      return;
+    }
     
     try {
       if (editingId) {
@@ -151,6 +165,24 @@ function ExaminationsManager() {
         return {
           ...prev,
           deviceIds: [...prev.deviceIds, deviceId]
+        };
+      }
+    });
+  };
+
+  const toggleSpecialtySelection = (specialtyId: string) => {
+    setFormData(prev => {
+      const isSelected = prev.specialtyIds.includes(specialtyId);
+      
+      if (isSelected) {
+        return {
+          ...prev,
+          specialtyIds: prev.specialtyIds.filter(id => id !== specialtyId)
+        };
+      } else {
+        return {
+          ...prev,
+          specialtyIds: [...prev.specialtyIds, specialtyId]
         };
       }
     });
@@ -305,6 +337,29 @@ function ExaminationsManager() {
                 <p className="text-xs text-error mt-1">Mindestens ein Gerät muss ausgewählt werden</p>
               )}
             </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Fachgebiete
+                <span className="text-error">*</span>
+              </label>
+              <div className="space-y-2 mt-2">
+                {specialties.map(specialty => (
+                  <label key={specialty.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="rounded border-input h-4 w-4 text-primary focus:ring-primary"
+                      checked={formData.specialtyIds.includes(specialty.id)}
+                      onChange={() => toggleSpecialtySelection(specialty.id)}
+                    />
+                    <span className="ml-2">{specialty.name}</span>
+                  </label>
+                ))}
+              </div>
+              {formData.specialtyIds.length === 0 && (
+                <p className="text-xs text-error mt-1">Mindestens ein Fachgebiet muss ausgewählt werden</p>
+              )}
+            </div>
             
             <div className="flex justify-end gap-3 pt-4">
               <button
@@ -317,7 +372,7 @@ function ExaminationsManager() {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={formData.deviceIds.length === 0}
+                disabled={formData.deviceIds.length === 0 || formData.specialtyIds.length === 0}
               >
                 {editingId ? 'Aktualisieren' : 'Untersuchung anlegen'}
               </button>
@@ -364,6 +419,16 @@ function ExaminationsManager() {
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Geräte:</span>
                       <span>{getDeviceNames(examination.deviceIds)}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Fachgebiete:</span>
+                      <span>
+                        {examination.specialtyIds?.map(id => {
+                          const specialty = specialties.find(s => s.id === id);
+                          return specialty?.name;
+                        }).filter(Boolean).join(', ') || 'Keine Fachgebiete zugewiesen'}
+                      </span>
                     </div>
                   </div>
                 </div>
