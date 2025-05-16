@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import { Device, WorkingHours, Exception } from '../types';
+import { Device } from '../types';
 
 interface DeviceState {
   devices: Device[];
@@ -11,28 +11,14 @@ interface DeviceState {
   addDevice: (device: Omit<Device, 'id'>) => Promise<void>;
   updateDevice: (id: string, data: Partial<Device>) => Promise<void>;
   deleteDevice: (id: string) => Promise<void>;
+  updateAvailableSlots: (id: string, date: string, slots: boolean[]) => Promise<void>;
 }
 
 const isAdmin = (session: any) => {
   return session?.user?.user_metadata?.role === 'admin';
 };
 
-// Helper function to verify category exists
-const verifyCategoryExists = async (categoryId: string): Promise<boolean> => {
-  const { data, error } = await supabase
-    .from('examination_categories')
-    .select('id')
-    .eq('id', categoryId)
-    .single();
-  
-  if (error) {
-    throw new Error('Failed to verify category');
-  }
-  
-  return !!data;
-};
-
-export const useDeviceStore = create<DeviceState>((set) => ({
+export const useDeviceStore = create<DeviceState>((set, get) => ({
   devices: [],
   isLoading: false,
   error: null,
@@ -46,45 +32,27 @@ export const useDeviceStore = create<DeviceState>((set) => ({
         throw new Error('Authentication required');
       }
 
-      // Fetch devices with their working hours and exceptions
-      const { data: devices, error: devicesError } = await supabase
+      const { data, error } = await supabase
         .from('devices')
         .select(`
           *,
-          examination_categories ( name ), 
-          device_working_hours (*),
-          device_exceptions (*)
+          examination_categories (name)
         `)
         .order('name');
       
-      if (devicesError) throw devicesError;
+      if (error) throw error;
       
-      // Transform the data to match our Device type
-      const transformedDevices = devices.map((device: any) => ({
+      const transformedDevices = data.map((device: any) => ({
         id: device.id,
         name: device.name,
         categoryId: device.category_id,
         categoryName: device.examination_categories?.name || 'Unbekannt',
-        workingHours: device.device_working_hours.map((wh: any) => ({
-          day: wh.day_of_week,
-          start: wh.start_time,
-          end: wh.end_time
-        })),
-        exceptions: device.device_exceptions.map((ex: any) => ({
-          date: ex.exception_date,
-          reason: ex.reason
-        }))
+        availableSlots: device.available_slots || {}
       }));
 
       set({ devices: transformedDevices, isLoading: false });
     } catch (error: any) {
-      let specificMessage = 'Failed to fetch devices';
-      if (error && typeof error === 'object' && error.message && typeof error.message === 'string') {
-        specificMessage = error.message;
-      } else if (error instanceof Error && error.message) {
-        specificMessage = error.message;
-      }
-      set({ error: specificMessage, isLoading: false });
+      set({ error: error.message || 'Failed to fetch devices', isLoading: false });
     }
   },
   
@@ -101,73 +69,29 @@ export const useDeviceStore = create<DeviceState>((set) => ({
         throw new Error('Admin access required');
       }
 
-      // Verify category exists before proceeding
-      const categoryExists = await verifyCategoryExists(device.categoryId);
-      if (!categoryExists) {
-        throw new Error('Selected category does not exist');
-      }
-
-      // Start a transaction by using a single connection
-      const { data: newDevice, error: deviceError } = await supabase
+      const { data: newDevice, error } = await supabase
         .from('devices')
         .insert([{
           name: device.name,
-          category_id: device.categoryId
+          category_id: device.categoryId,
+          available_slots: device.availableSlots || {}
         }])
         .select()
         .single();
       
-      if (deviceError) throw deviceError;
+      if (error) throw error;
 
-      // Insert working hours
-      const workingHoursData = device.workingHours.map(wh => ({
-        device_id: newDevice.id,
-        day_of_week: wh.day,
-        start_time: wh.start,
-        end_time: wh.end
-      }));
-
-      const { error: whError } = await supabase
-        .from('device_working_hours')
-        .insert(workingHoursData);
-      
-      if (whError) throw whError;
-
-      // Insert exceptions if any
-      if (device.exceptions.length > 0) {
-        const exceptionsData = device.exceptions.map(ex => ({
-          device_id: newDevice.id,
-          exception_date: ex.date,
-          reason: ex.reason
-        }));
-
-        const { error: exError } = await supabase
-          .from('device_exceptions')
-          .insert(exceptionsData);
-        
-        if (exError) throw exError;
-      }
-
-      // Fetch the complete device data
-      await set(state => ({ 
+      set(state => ({
         devices: [...state.devices, {
           id: newDevice.id,
           name: newDevice.name,
           categoryId: newDevice.category_id,
-          categoryName: newDevice.examination_categories?.name || 'Unbekannt',
-          workingHours: device.workingHours,
-          exceptions: device.exceptions
+          availableSlots: newDevice.available_slots || {}
         }],
-        isLoading: false 
+        isLoading: false
       }));
     } catch (error: any) {
-      let specificMessage = 'Failed to add device';
-      if (error && typeof error === 'object' && error.message && typeof error.message === 'string') {
-        specificMessage = error.message;
-      } else if (error instanceof Error && error.message) {
-        specificMessage = error.message;
-      }
-      set({ error: specificMessage, isLoading: false });
+      set({ error: error.message || 'Failed to add device', isLoading: false });
     }
   },
   
@@ -184,93 +108,25 @@ export const useDeviceStore = create<DeviceState>((set) => ({
         throw new Error('Admin access required');
       }
 
-      // Verify category exists before proceeding if categoryId is being updated
-      if (data.categoryId) {
-        const categoryExists = await verifyCategoryExists(data.categoryId);
-        if (!categoryExists) {
-          throw new Error('Selected category does not exist');
-        }
-      }
-
-      // Update device basic info
-      const { error: deviceError } = await supabase
+      const { error } = await supabase
         .from('devices')
         .update({
           name: data.name,
-          category_id: data.categoryId
+          category_id: data.categoryId,
+          available_slots: data.availableSlots
         })
         .eq('id', id);
       
-      if (deviceError) throw deviceError;
-
-      // Update working hours if provided
-      if (data.workingHours) {
-        // Delete existing working hours
-        const { error: deleteWhError } = await supabase
-          .from('device_working_hours')
-          .delete()
-          .eq('device_id', id);
-        
-        if (deleteWhError) throw deleteWhError;
-
-        // Insert new working hours
-        const workingHoursData = data.workingHours.map(wh => ({
-          device_id: id,
-          day_of_week: wh.day,
-          start_time: wh.start,
-          end_time: wh.end
-        }));
-
-        const { error: whError } = await supabase
-          .from('device_working_hours')
-          .insert(workingHoursData);
-        
-        if (whError) throw whError;
-      }
-
-      // Update exceptions if provided
-      if (data.exceptions) {
-        // Delete existing exceptions
-        const { error: deleteExError } = await supabase
-          .from('device_exceptions')
-          .delete()
-          .eq('device_id', id);
-        
-        if (deleteExError) throw deleteExError;
-
-        // Insert new exceptions
-        if (data.exceptions.length > 0) {
-          const exceptionsData = data.exceptions.map(ex => ({
-            device_id: id,
-            exception_date: ex.date,
-            reason: ex.reason
-          }));
-
-          const { error: exError } = await supabase
-            .from('device_exceptions')
-            .insert(exceptionsData);
-          
-          if (exError) throw exError;
-        }
-      }
-
-      // Update local state
+      if (error) throw error;
+      
       set(state => ({
         devices: state.devices.map(device => 
-          device.id === id 
-            ? { ...device, ...data }
-            : device
+          device.id === id ? { ...device, ...data } : device
         ),
         isLoading: false
       }));
     } catch (error: any) {
-      let specificMessage = 'Failed to update device';
-      if (error && typeof error === 'object' && error.message && typeof error.message === 'string') {
-        specificMessage = error.message;
-      } else if (error instanceof Error && error.message) {
-        specificMessage = error.message;
-      }
-      set({ error: specificMessage, isLoading: false });
+      set({ error: error.message || 'Failed to update device', isLoading: false });
     }
   },
   
@@ -299,13 +155,50 @@ export const useDeviceStore = create<DeviceState>((set) => ({
         isLoading: false
       }));
     } catch (error: any) {
-      let specificMessage = 'Failed to delete device';
-      if (error && typeof error === 'object' && error.message && typeof error.message === 'string') {
-        specificMessage = error.message;
-      } else if (error instanceof Error && error.message) {
-        specificMessage = error.message;
-      }
-      set({ error: specificMessage, isLoading: false });
+      set({ error: error.message || 'Failed to delete device', isLoading: false });
     }
   },
+
+  updateAvailableSlots: async (id: string, date: string, slots: boolean[]) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Authentication required');
+      }
+
+      if (!isAdmin(session)) {
+        throw new Error('Admin access required');
+      }
+
+      const device = get().devices.find(d => d.id === id);
+      if (!device) throw new Error('Device not found');
+
+      const updatedSlots = {
+        ...device.availableSlots,
+        [date]: slots
+      };
+
+      const { error } = await supabase
+        .from('devices')
+        .update({
+          available_slots: updatedSlots
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      set(state => ({
+        devices: state.devices.map(device => 
+          device.id === id 
+            ? { ...device, availableSlots: updatedSlots }
+            : device
+        ),
+        isLoading: false
+      }));
+    } catch (error: any) {
+      set({ error: error.message || 'Failed to update slots', isLoading: false });
+    }
+  }
 }));
