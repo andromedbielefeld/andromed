@@ -3,8 +3,8 @@ import { de } from 'date-fns/locale';
 
 interface SlotGridProps {
   selectedDate: Date;
-  slots: boolean[];
-  onSlotToggle: (index: number) => void;
+  slots: { [date: string]: boolean[] };
+  onSlotToggle: (date: string, index: number) => void;
   onDateChange: (date: Date) => void;
 }
 
@@ -63,7 +63,8 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
                 <td className="py-2 px-4 font-medium">{time}</td>
                 {weekDays.map(day => {
                   const dateStr = format(day, 'yyyy-MM-dd');
-                  const isSelected = slots[i];
+                  const daySlots = slots[dateStr] || Array(24).fill(false);
+                  const isSelected = daySlots[i];
                   
                   return (
                     <td key={`${dateStr}-${time}`} className="py-2 px-4 text-center">
@@ -72,7 +73,7 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
                           type="checkbox"
                           className="rounded border-input h-4 w-4 text-primary focus:ring-primary"
                           checked={isSelected}
-                          onChange={() => onSlotToggle(i)}
+                          onChange={() => onSlotToggle(dateStr, i)}
                         />
                       </label>
                     </td>
