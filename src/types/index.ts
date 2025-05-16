@@ -19,7 +19,19 @@ export interface Device {
   name: string;
   categoryId: string;
   categoryName?: string;
-  availableSlots: { [date: string]: boolean[] };
+  workingHours: WorkingHours[];
+  exceptions: Exception[];
+}
+
+export interface WorkingHours {
+  day: number; // 0 = Sunday, 1 = Monday, etc.
+  start: string; // HH:MM format
+  end: string; // HH:MM format
+}
+
+export interface Exception {
+  date: string; // YYYY-MM-DD format
+  reason: string;
 }
 
 export interface Slot {
