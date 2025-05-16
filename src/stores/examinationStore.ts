@@ -35,7 +35,14 @@ fetchExaminations: async () => {
 },
 
 // Update the addExamination function to handle specialties
-addExamination: async (examination) => {
+addExamination: async (examination: {
+  name: string;
+  categoryId: string;
+  durationMinutes: number;
+  bodySideRequired?: boolean;
+  deviceIds?: string[];
+  specialtyIds?: string[];
+}) => {
   set({ isLoading: true, error: null });
   try {
     const { deviceIds, specialtyIds, ...examinationData } = examination;
@@ -92,7 +99,14 @@ addExamination: async (examination) => {
 },
 
 // Update the updateExamination function to handle specialties
-updateExamination: async (id, data) => {
+updateExamination: async (id: string, data: {
+  name: string;
+  categoryId: string;
+  durationMinutes: number;
+  bodySideRequired: boolean;
+  deviceIds?: string[];
+  specialtyIds?: string[];
+}) => {
   set({ isLoading: true, error: null });
   try {
     // 1. Update examination data
