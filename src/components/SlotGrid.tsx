@@ -10,15 +10,17 @@ interface SlotGridProps {
   onWorkingHoursChange: (workingHours: WorkingHours[]) => void;
   onExceptionAdd: (exception: Exception) => void;
   onExceptionRemove: (date: string) => void;
+  onDateChange: (date: Date) => void;
 }
 
 function SlotGrid({ 
   selectedDate, 
-  workingHours, 
-  exceptions,
+  workingHours = [], // Provide default empty array
+  exceptions = [], // Provide default empty array
   onWorkingHoursChange,
   onExceptionAdd,
-  onExceptionRemove
+  onExceptionRemove,
+  onDateChange
 }: SlotGridProps) {
   // Generate time slots from 8:00 to 20:00 in 30-minute intervals
   const timeSlots = Array.from({ length: 24 }, (_, i) => {
@@ -36,20 +38,25 @@ function SlotGrid({
   const [hoveredSlot, setHoveredSlot] = useState<{ day: number; time: string } | null>(null);
 
   // Helper to check if a time slot is within working hours
-  const isWithinWorkingHours = (day: number, time: string) => {
+  const isWithinWorkingHours = (day: number, time: string): boolean => {
+    if (!Array.isArray(workingHours)) return false;
+    
     const workingDay = workingHours.find(wh => wh.day === day);
-    if (!workingDay) return false;
+    if (!workingDay?.start || !workingDay?.end) return false;
 
     return time >= workingDay.start && time <= workingDay.end;
   };
 
   // Helper to check if a date has an exception
-  const hasException = (date: string) => {
+  const hasException = (date: string): boolean => {
+    if (!Array.isArray(exceptions)) return false;
     return exceptions.some(ex => ex.date === date);
   };
 
   // Handle working hours toggle
   const handleWorkingHoursToggle = (day: number, time: string) => {
+    if (!Array.isArray(workingHours)) return;
+    
     const workingDay = workingHours.find(wh => wh.day === day);
     
     if (workingDay) {
