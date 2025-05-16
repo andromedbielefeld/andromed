@@ -35,6 +35,7 @@ interface GenerateSlotParams {
   examination_ids?: string[];
   startDate?: string;
   numberOfDays?: number;
+  updatePoolOnly?: boolean;
 }
 
 // Hilfsfunktionen
@@ -70,15 +71,27 @@ Deno.serve(async (req) => {
     // Parameter aus Request-Body extrahieren
     const params: GenerateSlotParams = await req.json();
     
-    const startDate = params.startDate ? new Date(params.startDate) : new Date();
-    startDate.setHours(0, 0, 0, 0); // Auf Mitternacht setzen
-    const numberOfDays = params.numberOfDays || 14;
-
     // Supabase-Client initialisieren
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
+
+    // Wenn nur der Pool aktualisiert werden soll
+    if (params.updatePoolOnly) {
+      await updateSlotPool(supabase);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Slot pool updated successfully'
+        }),
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const startDate = params.startDate ? new Date(params.startDate) : new Date();
+    startDate.setHours(0, 0, 0, 0); // Auf Mitternacht setzen
+    const numberOfDays = params.numberOfDays || 14;
 
     console.log(`Generating slots for ${numberOfDays} days starting from ${startDate.toISOString().split('T')[0]}`);
     
@@ -417,15 +430,3 @@ async function updateSlotPool(supabase: any) {
     console.error("Error updating slot_pool:", error.message);
   }
 }
-
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/generate-slots' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-    --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
-
-*/
