@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Settings } from 'lucide-react';
-import { useExaminationCategoryStore } from '../../stores/examinationCategoryStore';
-import { useInsuranceTypeStore } from '../../stores/insuranceTypeStore';
+import SpecialtiesManager from './settings/SpecialtiesManager';
 import InsuranceTypesManager from './settings/InsuranceTypesManager';
 
+type Tab = 'specialties' | 'insurance' | 'examinations';
+
 function SettingsManager() {
-  const [activeTab, setActiveTab] = useState<'examinations' | 'insurance'>('examinations');
+  const [activeTab, setActiveTab] = useState<Tab>('specialties');
 
   return (
     <div>
@@ -17,6 +18,16 @@ function SettingsManager() {
       {/* Tabs */}
       <div className="mb-8 border-b border-border">
         <div className="flex gap-4">
+          <button
+            onClick={() => setActiveTab('specialties')}
+            className={`pb-2 px-1 border-b-2 transition-colors ${
+              activeTab === 'specialties'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Fachgebiete
+          </button>
           <button
             onClick={() => setActiveTab('examinations')}
             className={`pb-2 px-1 border-b-2 transition-colors ${
@@ -42,7 +53,11 @@ function SettingsManager() {
 
       {/* Content */}
       <div className="card">
-        {activeTab === 'examinations' ? (
+        {activeTab === 'specialties' ? (
+          <div className="animate-fade-in">
+            <SpecialtiesManager />
+          </div>
+        ) : activeTab === 'examinations' ? (
           <div className="animate-fade-in">
             <h2 className="text-xl font-semibold mb-6">Untersuchungstypen verwalten</h2>
             <div className="space-y-6">
