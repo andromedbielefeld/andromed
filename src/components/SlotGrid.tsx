@@ -66,8 +66,9 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
                 <td className="py-2 px-4 font-medium border-r border-border">{time}</td>
                 {weekDays.map(day => {
                   const dateStr = format(day, 'yyyy-MM-dd');
-                  const daySlots = slots[dateStr] || Array(24).fill(false);
-                  const isSelected = daySlots[i];
+                  // Use nullish coalescing operator to handle undefined slots
+                  const daySlots = slots?.[dateStr] ?? Array(24).fill(false);
+                  const isSelected = daySlots[i] ?? false;
                   const isHovered = hoveredSlot?.date === dateStr && hoveredSlot?.index === i;
                   
                   return (
