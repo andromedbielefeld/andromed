@@ -94,7 +94,7 @@ export const useDeviceStore = create<DeviceState>((set) => ({
         categoryId: device.category_id,
         categoryName: device.examination_categories?.name || 'Unbekannt',
         workingHours: workingHoursResults[index].map((wh: any) => ({
-          day: wh.day_of_week,
+          date: wh.work_date,
           start: wh.start_time,
           end: wh.end_time
         })),
@@ -151,7 +151,7 @@ export const useDeviceStore = create<DeviceState>((set) => ({
       // Insert working hours
       const workingHoursData = device.workingHours.map(wh => ({
         device_id: newDevice.id,
-        day_of_week: wh.day,
+        work_date: wh.date,
         start_time: wh.start,
         end_time: wh.end
       }));
@@ -246,7 +246,7 @@ export const useDeviceStore = create<DeviceState>((set) => ({
         // Insert new working hours
         const workingHoursData = data.workingHours.map(wh => ({
           device_id: id,
-          day_of_week: wh.day,
+          work_date: wh.date,
           start_time: wh.start,
           end_time: wh.end
         }));
@@ -417,7 +417,7 @@ export const useDeviceStore = create<DeviceState>((set) => ({
       // Insert new working hours
       const workingHoursData = workingHours.map(wh => ({
         device_id: deviceId,
-        day_of_week: wh.day,
+        work_date: wh.date,
         start_time: wh.start,
         end_time: wh.end
       }));
