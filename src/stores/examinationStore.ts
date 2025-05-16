@@ -12,11 +12,18 @@ interface Examination {
   specialtyIds: string[];
 }
 
+interface ExaminationCategory {
+  id: string;
+  name: string;
+}
+
 interface ExaminationStore {
   examinations: Examination[];
+  categories: ExaminationCategory[];
   isLoading: boolean;
   error: string | null;
   fetchExaminations: () => Promise<void>;
+  fetchCategories: () => Promise<void>;
   addExamination: (examination: {
     name: string;
     categoryId: string;
@@ -33,12 +40,33 @@ interface ExaminationStore {
     deviceIds?: string[];
     specialtyIds?: string[];
   }) => Promise<void>;
+  deleteExamination: (id: string) => Promise<void>;
+  addCategory: (category: { name: string }) => Promise<void>;
+  updateCategory: (id: string, data: { name: string }) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
 }
 
 export const useExaminationStore = create<ExaminationStore>((set, get) => ({
   examinations: [],
+  categories: [],
   isLoading: false,
   error: null,
+
+  fetchCategories: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data, error } = await supabase
+        .from('examination_categories')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+
+      set({ categories: data, isLoading: false });
+    } catch (error: any) {
+      set({ error: error?.message || 'Failed to fetch categories', isLoading: false });
+    }
+  },
 
   fetchExaminations: async () => {
     set({ isLoading: true, error: null });
@@ -202,6 +230,89 @@ export const useExaminationStore = create<ExaminationStore>((set, get) => ({
       set({ isLoading: false });
     } catch (error: any) {
       set({ error: error?.message || 'Failed to update examination', isLoading: false });
+    }
+  },
+
+  deleteExamination: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('examinations')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      set(state => ({
+        examinations: state.examinations.filter(exam => exam.id !== id),
+        isLoading: false
+      }));
+    } catch (error: any) {
+      set({ error: error?.message || 'Failed to delete examination', isLoading: false });
+    }
+  },
+
+  addCategory: async (category) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data, error } = await supabase
+        .from('examination_categories')
+        .insert([category])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local state
+      set(state => ({
+        categories: [...state.categories, data],
+        isLoading: false
+      }));
+    } catch (error: any) {
+      set({ error: error?.message || 'Failed to add category', isLoading: false });
+    }
+  },
+
+  updateCategory: async (id, data) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('examination_categories')
+        .update(data)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      set(state => ({
+        categories: state.categories.map(cat => 
+          cat.id === id ? { ...cat, ...data } : cat
+        ),
+        isLoading: false
+      }));
+    } catch (error: any) {
+      set({ error: error?.message || 'Failed to update category', isLoading: false });
+    }
+  },
+
+  deleteCategory: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('examination_categories')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      set(state => ({
+        categories: state.categories.filter(cat => cat.id !== id),
+        isLoading: false
+      }));
+    } catch (error: any) {
+      set({ error: error?.message || 'Failed to delete category', isLoading: false });
     }
   }
 }));
