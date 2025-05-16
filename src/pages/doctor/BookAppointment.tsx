@@ -12,6 +12,7 @@ import ReasonSelection from './BookAppointment/ReasonSelection';
 import DiagnosisSelection from './BookAppointment/DiagnosisSelection';
 import SlotSelection from './BookAppointment/SlotSelection';
 import PatientForm from './BookAppointment/PatientForm';
+import SignatureCapture from './BookAppointment/SignatureCapture';
 import Confirmation from './BookAppointment/Confirmation';
 
 // Booking flow steps
@@ -22,7 +23,8 @@ type BookingStep =
   | 'reason' 
   | 'diagnosis' 
   | 'slot' 
-  | 'patient' 
+  | 'patient'
+  | 'signature' 
   | 'confirmation';
 
 function BookAppointment() {
@@ -41,6 +43,9 @@ function BookAppointment() {
   const [creatinineValue, setCreatinineValue] = useState<string | null>(null);
   const [hasClaustrophobia, setHasClaustrophobia] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>('');
+  const [patientData, setPatientData] = useState<PatientData | null>(null);
+  const [insuranceType, setInsuranceType] = useState<InsuranceType | null>(null);
+  const [signature, setSignature] = useState<string | null>(null);
   const [completedAppointment, setCompletedAppointment] = useState<Appointment | null>(null);
   
   // Load initial data
@@ -94,9 +99,17 @@ function BookAppointment() {
     setStep('patient');
   };
   
-  const handlePatientSubmit = async (patientData: PatientData, insuranceType: InsuranceType) => {
+  const handlePatientSubmit = (data: PatientData, type: InsuranceType) => {
+    setPatientData(data);
+    setInsuranceType(type);
+    setStep('signature');
+  };
+
+  const handleSignatureSubmit = async (signatureData: string) => {
+    setSignature(signatureData);
+
     try {
-      if (!user) return;
+      if (!user || !patientData || !insuranceType) return;
       
       const selectedExamination = examinations.find(e => e.id === selectedExaminationId);
       if (!selectedExamination) return;
@@ -111,7 +124,8 @@ function BookAppointment() {
         suspectedDiagnosis,
         needsContrastMedium,
         creatinineValue,
-        hasClaustrophobia
+        hasClaustrophobia,
+        signatureData
       );
       
       // Create local appointment object for confirmation
@@ -127,6 +141,7 @@ function BookAppointment() {
         needsContrastMedium,
         creatinineValue: creatinineValue || undefined,
         hasClaustrophobia,
+        signature: signatureData,
         createdAt: new Date().toISOString(),
         status: 'pending'
       };
@@ -150,15 +165,15 @@ function BookAppointment() {
     setCreatinineValue(null);
     setHasClaustrophobia(false);
     setSelectedSlotId('');
+    setPatientData(null);
+    setInsuranceType(null);
+    setSignature(null);
     setCompletedAppointment(null);
   };
   
   // Step back handlers
   const goBack = () => {
     switch (step) {
-      case 'examination':
-        setStep('category');
-        break;
       case 'bodySide':
         setStep('examination');
         break;
@@ -174,6 +189,9 @@ function BookAppointment() {
         break;
       case 'patient':
         setStep('slot');
+        break;
+      case 'signature':
+        setStep('patient');
         break;
       default:
         break;
@@ -235,6 +253,13 @@ function BookAppointment() {
             <PatientForm 
               examination={selectedExamination}
               onSubmit={handlePatientSubmit}
+              onBack={goBack}
+            />
+          )}
+
+          {step === 'signature' && (
+            <SignatureCapture
+              onSubmit={handleSignatureSubmit}
               onBack={goBack}
             />
           )}
