@@ -24,7 +24,7 @@ export interface Device {
 }
 
 export interface WorkingHours {
-  day: number; // 0 = Sunday, 1 = Monday, etc.
+  date: string; // YYYY-MM-DD format
   start: string; // HH:MM format
   end: string; // HH:MM format
 }

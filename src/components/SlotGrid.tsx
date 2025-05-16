@@ -15,8 +15,8 @@ interface SlotGridProps {
 
 function SlotGrid({ 
   selectedDate, 
-  workingHours = [], // Provide default empty array
-  exceptions = [], // Provide default empty array
+  workingHours = [], 
+  exceptions = [], 
   onWorkingHoursChange,
   onExceptionAdd,
   onExceptionRemove,
@@ -35,34 +35,28 @@ function SlotGrid({
   );
 
   // Track hover state for better UX
-  const [hoveredSlot, setHoveredSlot] = useState<{ day: number; time: string } | null>(null);
+  const [hoveredSlot, setHoveredSlot] = useState<{ date: string; time: string } | null>(null);
 
   // Helper to check if a time slot is within working hours
-  const isWithinWorkingHours = (day: number, time: string): boolean => {
-    if (!Array.isArray(workingHours)) return false;
-    
-    const workingDay = workingHours.find(wh => wh.day === day);
+  const isWithinWorkingHours = (date: string, time: string): boolean => {
+    const workingDay = workingHours.find(wh => wh.date === date);
     if (!workingDay?.start || !workingDay?.end) return false;
-
     return time >= workingDay.start && time <= workingDay.end;
   };
 
   // Helper to check if a date has an exception
   const hasException = (date: string): boolean => {
-    if (!Array.isArray(exceptions)) return false;
     return exceptions.some(ex => ex.date === date);
   };
 
   // Handle working hours toggle
-  const handleWorkingHoursToggle = (day: number, time: string) => {
-    if (!Array.isArray(workingHours)) return;
-    
-    const workingDay = workingHours.find(wh => wh.day === day);
+  const handleWorkingHoursToggle = (date: string, time: string) => {
+    const workingDay = workingHours.find(wh => wh.date === date);
     
     if (workingDay) {
       // Update existing working hours
       const updatedWorkingHours = workingHours.map(wh => 
-        wh.day === day 
+        wh.date === date 
           ? { ...wh, start: time, end: time }
           : wh
       );
@@ -71,7 +65,7 @@ function SlotGrid({
       // Add new working hours
       onWorkingHoursChange([
         ...workingHours,
-        { day, start: time, end: time }
+        { date, start: time, end: time }
       ]);
     }
   };
@@ -116,11 +110,10 @@ function SlotGrid({
               <tr key={time} className={time.endsWith('00') ? 'bg-muted/30' : ''}>
                 <td className="py-2 px-4 font-medium border-r border-border">{time}</td>
                 {weekDays.map(day => {
-                  const dayOfWeek = day.getDay();
                   const dateStr = format(day, 'yyyy-MM-dd');
-                  const isWorking = isWithinWorkingHours(dayOfWeek, time);
+                  const isWorking = isWithinWorkingHours(dateStr, time);
                   const hasExceptionDay = hasException(dateStr);
-                  const isHovered = hoveredSlot?.day === dayOfWeek && hoveredSlot?.time === time;
+                  const isHovered = hoveredSlot?.date === dateStr && hoveredSlot?.time === time;
                   
                   return (
                     <td 
@@ -130,7 +123,7 @@ function SlotGrid({
                       } ${hasExceptionDay ? 'bg-error/10' : ''}`}
                     >
                       <label
-                        onMouseEnter={() => setHoveredSlot({ day: dayOfWeek, time })}
+                        onMouseEnter={() => setHoveredSlot({ date: dateStr, time })}
                         onMouseLeave={() => setHoveredSlot(null)}
                         className={`block w-full h-full p-2 rounded transition-colors cursor-pointer ${
                           isWorking 
@@ -141,7 +134,7 @@ function SlotGrid({
                         <input
                           type="checkbox"
                           checked={isWorking}
-                          onChange={() => handleWorkingHoursToggle(dayOfWeek, time)}
+                          onChange={() => handleWorkingHoursToggle(dateStr, time)}
                           className={`w-4 h-4 mx-auto rounded border ${
                             isWorking 
                               ? 'bg-green-500 border-green-500 text-white' 
