@@ -25,12 +25,6 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
   // Track hover state for better UX
   const [hoveredSlot, setHoveredSlot] = useState<{ date: string; index: number } | null>(null);
 
-  // Korrigierte handleSlotClick Funktion
-  const handleSlotClick = (date: string, index: number) => {
-    // Keine preventDefault mehr, damit die Checkbox funktioniert
-    onSlotToggle(date, index);
-  };
-
   return (
     <div className="space-y-4">
       {/* Week navigation */}
@@ -83,10 +77,10 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
                         isHovered ? 'bg-muted' : ''
                       }`}
                     >
-                      <div
+                      <label
                         onMouseEnter={() => setHoveredSlot({ date: dateStr, index: i })}
                         onMouseLeave={() => setHoveredSlot(null)}
-                        className={`w-full h-full p-2 rounded transition-colors ${
+                        className={`block w-full h-full p-2 rounded transition-colors cursor-pointer ${
                           isSelected 
                             ? 'bg-green-500/20 hover:bg-green-500/30' 
                             : 'hover:bg-muted'
@@ -95,14 +89,14 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={() => handleSlotClick(dateStr, i)}
+                          onChange={() => onSlotToggle(dateStr, i)}
                           className={`w-4 h-4 mx-auto rounded border ${
                             isSelected 
                               ? 'bg-green-500 border-green-500 text-white' 
                               : 'border-input'
                           }`}
                         />
-                      </div>
+                      </label>
                     </td>
                   );
                 })}
