@@ -25,7 +25,8 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
   // Track hover state for better UX
   const [hoveredSlot, setHoveredSlot] = useState<{ date: string; index: number } | null>(null);
 
-  const handleSlotClick = (date: string, index: number) => {
+  const handleSlotClick = (e: React.MouseEvent, date: string, index: number) => {
+    e.preventDefault(); // Prevent any parent button clicks
     onSlotToggle(date, index);
   };
 
@@ -81,8 +82,7 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
                         isHovered ? 'bg-muted' : ''
                       }`}
                     >
-                      <button
-                        onClick={() => handleSlotClick(dateStr, i)}
+                      <div
                         onMouseEnter={() => setHoveredSlot({ date: dateStr, index: i })}
                         onMouseLeave={() => setHoveredSlot(null)}
                         className={`w-full h-full p-2 rounded transition-colors ${
@@ -91,28 +91,17 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
                             : 'hover:bg-muted'
                         }`}
                       >
-                        <div 
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => handleSlotClick(e.nativeEvent as unknown as React.MouseEvent, dateStr, i)}
                           className={`w-4 h-4 mx-auto rounded border ${
                             isSelected 
-                              ? 'bg-primary border-primary' 
+                              ? 'bg-primary border-primary text-primary-foreground' 
                               : 'border-input'
                           }`}
-                        >
-                          {isSelected && (
-                            <svg 
-                              viewBox="0 0 24 24" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="4"
-                              strokeLinecap="round" 
-                              strokeLinejoin="round"
-                              className="text-primary-foreground"
-                            >
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          )}
-                        </div>
-                      </button>
+                        />
+                      </div>
                     </td>
                   );
                 })}
@@ -123,7 +112,7 @@ function SlotGrid({ selectedDate, slots, onSlotToggle, onDateChange }: SlotGridP
       </div>
 
       <div className="text-sm text-muted-foreground">
-        Klicken Sie auf die Zeitslots, um die Verfügbarkeit zu ändern.
+        Klicken Sie auf die Checkboxen, um die Verfügbarkeit zu ändern.
       </div>
     </div>
   );
