@@ -12,6 +12,7 @@ interface DeviceState {
   updateDevice: (id: string, data: Partial<Device>) => Promise<void>;
   deleteDevice: (id: string) => Promise<void>;
   updateAvailableSlots: (deviceId: string, date: string, slots: boolean[]) => Promise<void>;
+  updateWorkingHours: (deviceId: string, workingHours: WorkingHours[]) => Promise<void>;
 }
 
 const isAdmin = (session: any) => {
@@ -383,6 +384,61 @@ export const useDeviceStore = create<DeviceState>((set) => ({
       }));
     } catch (error: any) {
       let specificMessage = 'Failed to update available slots';
+      if (error && typeof error === 'object' && error.message && typeof error.message === 'string') {
+        specificMessage = error.message;
+      } else if (error instanceof Error && error.message) {
+        specificMessage = error.message;
+      }
+      set({ error: specificMessage, isLoading: false });
+    }
+  },
+
+  updateWorkingHours: async (deviceId: string, workingHours: WorkingHours[]) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Authentication required');
+      }
+
+      if (!isAdmin(session)) {
+        throw new Error('Admin access required');
+      }
+
+      // Delete existing working hours
+      const { error: deleteError } = await supabase
+        .from('device_working_hours')
+        .delete()
+        .eq('device_id', deviceId);
+      
+      if (deleteError) throw deleteError;
+
+      // Insert new working hours
+      const workingHoursData = workingHours.map(wh => ({
+        device_id: deviceId,
+        day_of_week: wh.day,
+        start_time: wh.start,
+        end_time: wh.end
+      }));
+
+      const { error: insertError } = await supabase
+        .from('device_working_hours')
+        .insert(workingHoursData);
+      
+      if (insertError) throw insertError;
+
+      // Update local state
+      set(state => ({
+        devices: state.devices.map(device => 
+          device.id === deviceId
+            ? { ...device, workingHours }
+            : device
+        ),
+        isLoading: false
+      }));
+    } catch (error: any) {
+      let specificMessage = 'Failed to update working hours';
       if (error && typeof error === 'object' && error.message && typeof error.message === 'string') {
         specificMessage = error.message;
       } else if (error instanceof Error && error.message) {
