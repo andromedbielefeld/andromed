@@ -92,14 +92,21 @@ function DevicesManager() {
   };
 
   const handleDeviceSelect = (device: Device) => {
-    setSelectedDevice(device);
+    // Ensure device has availableSlots object initialized
+    setSelectedDevice({
+      ...device,
+      availableSlots: device.availableSlots || {}
+    });
   };
 
   const handleSlotToggle = async (date: string, index: number) => {
     if (!selectedDevice) return;
 
+    // Ensure availableSlots object exists
+    const availableSlots = selectedDevice.availableSlots || {};
+    
     // Get current slots for the date or initialize new array
-    const currentSlots = selectedDevice.availableSlots[date] || Array(24).fill(false);
+    const currentSlots = availableSlots[date] || Array(24).fill(false);
     
     // Create new array with toggled slot
     const newSlots = [...currentSlots];
@@ -301,7 +308,7 @@ function DevicesManager() {
               </h2>
               <SlotGrid
                 selectedDate={selectedDate}
-                slots={selectedDevice.availableSlots}
+                slots={selectedDevice.availableSlots || {}}
                 onSlotToggle={handleSlotToggle}
                 onDateChange={setSelectedDate}
               />
