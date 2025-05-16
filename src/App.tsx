@@ -28,50 +28,51 @@ import ProtectedRoute from './components/ProtectedRoute';
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route element={<PublicLayout />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Navigate to="/login" replace />} />
-          </Route>
-          
-          {/* Admin routes */}
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="examinations" element={<ExaminationsManager />} />
-            <Route path="devices" element={<DevicesManager />} />
-            <Route path="doctors" element={<DoctorsManager />} />
-            <Route path="appointments" element={<AppointmentsManager />} />
-            <Route path="settings" element={<SettingsManager />} />
-          </Route>
-          
-          {/* Doctor routes */}
-          <Route 
-            path="/doctor" 
-            element={
-              <ProtectedRoute allowedRoles={['doctor']}>
-                <DoctorLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<BookAppointment />} />
-            <Route path="book" element={<BookAppointment />} />
-            <Route path="appointments" element={<MyAppointments />} />
-          </Route>
-          
-          {/* Fallback route */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </Router>
-      <Toaster />
+      <Toaster>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route element={<PublicLayout />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Navigate to="/login" replace />} />
+            </Route>
+            
+            {/* Admin routes */}
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="examinations" element={<ExaminationsManager />} />
+              <Route path="devices" element={<DevicesManager />} />
+              <Route path="doctors" element={<DoctorsManager />} />
+              <Route path="appointments" element={<AppointmentsManager />} />
+              <Route path="settings" element={<SettingsManager />} />
+            </Route>
+            
+            {/* Doctor routes */}
+            <Route 
+              path="/doctor" 
+              element={
+                <ProtectedRoute allowedRoles={['doctor']}>
+                  <DoctorLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<BookAppointment />} />
+              <Route path="book" element={<BookAppointment />} />
+              <Route path="appointments" element={<MyAppointments />} />
+            </Route>
+            
+            {/* Fallback route */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Router>
+      </Toaster>
     </AuthProvider>
   );
 }
