@@ -76,8 +76,8 @@ function DevicesManager() {
     setFormData({
       name: device.name,
       categoryId: device.categoryId,
-      workingHours: device.workingHours,
-      exceptions: device.exceptions
+      workingHours: device.workingHours || [],
+      exceptions: device.exceptions || []
     });
     setEditingId(device.id);
     setShowForm(true);
@@ -457,14 +457,14 @@ function DevicesManager() {
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">Arbeitszeiten:</span>
                         <span>
-                          {device.workingHours
+                          {(device.workingHours || [])
                             .sort((a, b) => a.day - b.day)
                             .map(hours => `${getDayName(hours.day)} ${hours.start}–${hours.end}`)
                             .join(', ')}
                         </span>
                       </div>
                       
-                      {device.exceptions.length > 0 && (
+                      {(device.exceptions || []).length > 0 && (
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">Ausnahmen:</span>
                           <span>
