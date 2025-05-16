@@ -20,7 +20,7 @@ function AdminLayout() {
       <div className="w-64 bg-card border-r border-border shadow-sm hidden md:block">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <ActivitySquare className="h-6 w-6 text-primary mr-2" />
-          <span className="font-semibold">Klinik-Admin</span>
+          <span className="font-semibold">andromed-Admin</span>
         </div>
         
         <div className="py-4">
@@ -137,7 +137,7 @@ function AdminLayout() {
       <div className="bg-card border-b border-border shadow-sm fixed top-0 left-0 right-0 h-14 flex items-center justify-between px-4 md:hidden z-10">
         <div className="flex items-center">
           <ActivitySquare className="h-6 w-6 text-primary mr-2" />
-          <span className="font-semibold">Klinik-Admin</span>
+          <span className="font-semibold">andromed-Admin</span>
         </div>
         {/* Mobile menu button would go here */}
       </div>
